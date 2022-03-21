@@ -1,19 +1,35 @@
 # Fault Tolerant Computing Term Project
----
 
 ## Setup Dev Environment
 
-- node 17.7.2
+- node `17.7.2`
+- go `1.18`
 
 ```sh
+# Install Golang compiler & toolchain
+# Mac -> install with brew or directly download binary from the website
+brew install go
+
+# Node env can be managed with nvm package manager.
 # Initialize Npm Dev Environment
 npm install
+```
+
+## Build and Run
+
+```sh
+# This will build the project and output the binary
+make build
+
+# Clean the artifacts
+make clean
 ```
 
 ### References
 
 Development Documents
 
+- [golang-standards/project-layout: Standard Go Project Layout](https://github.com/golang-standards/project-layout)
 - [Go | gRPC](https://grpc.io/docs/languages/go/)
 
 Style Guild:
