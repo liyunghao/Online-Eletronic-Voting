@@ -10,6 +10,9 @@
 # Mac -> install with brew or directly download binary from the website
 brew install go
 
+# Install golangci-lint for linter
+brew install golangci-lint
+
 # Node env can be managed with nvm package manager.
 # Initialize Npm Dev Environment
 npm install
@@ -38,3 +41,4 @@ Style Guild:
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification)
 - [conventional-changelog/commitlint: 📓 Lint commit messages](https://github.com/conventional-changelog/commitlint)
 - [typicode/husky: Git hooks made easy 🐶 woof!](https://github.com/typicode/husky)
+- [golangci/golangci-lint: Fast linters Runner for Go](https://github.com/golangci/golangci-lint)
