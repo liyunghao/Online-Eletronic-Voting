@@ -1,0 +1,20 @@
+{
+    "name": "online-eletronic-voting",
+    "version": "1.0.0",
+    "description": "Online Eletronic Voting Machine for Fault Tolenrence Class",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/liyunghao/Online-Eletronic-Voting.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/liyunghao/Online-Eletronic-Voting/issues"
+    },
+    "homepage": "https://github.com/liyunghao/Online-Eletronic-Voting#readme",
+    "devDependencies": {
+        "@commitlint/cli": "^16.2.3",
+        "@commitlint/config-conventional": "^16.2.1",
+        "husky": "^7.0.4"
+    }
+}
