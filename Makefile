@@ -13,6 +13,10 @@ build-client:
 build-server:
 	go build ${PACKAGE_PREFIX}/cmd/server
 
+.PHONY: compile-proto
+compile-proto:
+	protoc --go_out=plugins=grpc:./internal/voting ./internal/voting/voting.proto
+
 .PHONY: build
 build: build-client build-server
 
