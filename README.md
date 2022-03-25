@@ -4,7 +4,9 @@
 
 - node `17.7.2`
 - go `1.18`
+- protoc `3.6.1`
 
+### OSX
 ```sh
 # Install Golang compiler & toolchain
 # Mac -> install with brew or directly download binary from the website
@@ -13,9 +15,30 @@ brew install go
 # Install golangci-lint for linter
 brew install golangci-lint
 
+# Install protobuf compiler
+brew install protobuf
+
 # Node env can be managed with nvm package manager.
 # Initialize Npm Dev Environment
 npm install
+```
+
+### Linux
+```sh
+sudo apt-get update
+
+# Don't forget to check the version 
+sudo apt-get install golang-go
+
+# Install golangci-lint
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
+
+# Install protobuf compiler
+sudo apt-get install protobuf-compiler
+
+# Install plugins for protobuf compiler to generate go
+go get google.golang.org/protobuotoc-gen-go@v1.26
+go get google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 ```
 
 ## Build and Run
