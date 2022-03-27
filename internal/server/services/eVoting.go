@@ -9,6 +9,7 @@ import (
 )
 
 type Service_eVoting struct {
+	pb.UnimplementedEVotingServer
 }
 
 // Authentication Related
