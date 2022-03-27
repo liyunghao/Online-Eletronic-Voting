@@ -15,7 +15,9 @@ build-server:
 
 .PHONY: compile-proto
 compile-proto:
-	protoc --go_out=plugins=grpc:./internal/voting ./internal/voting/voting.proto
+	protoc --go_out=. --go_opt=paths=source_relative \
+    	   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    	   internal/voting/voting.proto
 
 .PHONY: build
 build: build-client build-server
