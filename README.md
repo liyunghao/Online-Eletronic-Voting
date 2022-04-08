@@ -27,7 +27,7 @@ npm install
 ```sh
 sudo apt-get update
 
-# Don't forget to check the version 
+# Don't forget to check the version
 sudo apt-get install golang-go
 
 # Install golangci-lint
@@ -43,12 +43,28 @@ go get google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 
 ## Build and Run
 
+Build
 ```sh
 # This will build the project and output the binary
 make build
 
+# Build independent test
+make build-test
+
 # Clean the artifacts
 make clean
+```
+
+Run
+```sh
+# Start a Server
+./server
+
+# Start a Client
+./client
+
+# gRPC route independent testing
+./grpcConn
 ```
 
 ### References
