@@ -1,0 +1,17 @@
+# Ignore client-side code
+internal/client
+cmd/client
+
+# Ignore project files and git
+.git
+.gitignore
+.husky
+commitlint.config.js
+node_modules
+package-lock.json
+package.json
+
+# Docs and Test
+Readme.md
+doc
+test
