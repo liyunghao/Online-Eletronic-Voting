@@ -9,3 +9,6 @@ package-lock.json
 
 # Vscode Related XD
 .vscode
+
+# Sqlite Database
+database.db
