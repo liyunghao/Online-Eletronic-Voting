@@ -1,13 +1,12 @@
-FROM golang:1.18.0-alpine3.15
+FROM golang:1.18.0-buster
 
 # Metadata
 LABEL name="online-electronic-voting-machine"
 
 EXPOSE 8080
 
-# Update container image and setup sqlite, make, python3
-RUN apk add --update \
-    sqlite make python3
+# Update container image and setup sqlite, build-essential, and libsodium, python3
+RUN apt-get update && apt-get install -y sqlite3 build-essential libsodium-dev python3
 
 # Setup workdir and build code
 COPY . /app

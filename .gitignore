@@ -9,6 +9,10 @@ package-lock.json
 
 # Vscode Related XD
 .vscode
+.devcontainer
 
 # Sqlite Database
 database.db
+
+# Scripts Libsodium Build
+scripts/libsodium_gen/main
