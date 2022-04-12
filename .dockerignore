@@ -6,6 +6,7 @@ cmd/client
 .git
 .gitignore
 .husky
+.golangci.yaml
 commitlint.config.js
 node_modules
 package-lock.json
