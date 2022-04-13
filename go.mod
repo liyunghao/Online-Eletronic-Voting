@@ -3,6 +3,7 @@ module github.com/liyunghao/Online-Eletronic-Voting
 go 1.18
 
 require (
+	github.com/mattn/go-sqlite3 v1.14.12
 	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.28.0
 )
