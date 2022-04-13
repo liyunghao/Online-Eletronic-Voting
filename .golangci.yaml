@@ -1,5 +1,9 @@
 issues:
   exclude-rules:
-    - path: test/libsodium_cgo/main.go
+    # CGO Problem
+    - path: internal/server/api/auth/auth.go
+      linters:
+        - typecheck
+    - path: test/libsodium_client/main.go
       linters:
         - typecheck
