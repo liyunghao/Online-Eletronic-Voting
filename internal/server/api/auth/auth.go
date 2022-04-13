@@ -6,6 +6,7 @@ import (
 	"log"
 
 	db "github.com/liyunghao/Online-Eletronic-Voting/internal/server/database"
+	"github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,7 +48,7 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 	// If not, return error.
 	// If yes, check if challenge is correct.
 	// If yes, return auth token.
-	res, err := db.SqliteDB.Query("SELECT public_key FROM voters WHERE name = ?", req.Name.Name)
+	res, err := db.SqliteDB.Query("SELECT name, grouptype, public_key FROM voters WHERE name = ?", req.Name.Name)
 	defer func() {
 		err = res.Close()
 		if err != nil {
@@ -59,11 +60,13 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 	}
 
 	var sign_pk_base64 string
+	var name string
+	var group string
 	if !res.Next() {
 		// Voter not found
 		return nil, status.Error(codes.InvalidArgument, "Voter not found")
 	} else {
-		err = res.Scan(&sign_pk_base64)
+		err = res.Scan(&name, &group, &sign_pk_base64)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
 		}
@@ -81,7 +84,13 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 	}
 
 	if isValidSignature(sign_pk, challengeCache[req.Name.Name], req.Response.Value) {
-		return &pb.AuthToken{Value: []byte("Verify")}, nil
+		// Generate Jwt token and send back to client
+		token, err := jwt.GenerateToken(name, group)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
+		}
+
+		return &pb.AuthToken{Value: token}, nil
 	} else {
 		return nil, status.Error(codes.PermissionDenied, "Invalid signature")
 	}

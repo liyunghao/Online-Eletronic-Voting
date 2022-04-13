@@ -9,6 +9,7 @@ import (
 	"os"
 
 	db "github.com/liyunghao/Online-Eletronic-Voting/internal/server/database"
+	jwt "github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 	"google.golang.org/grpc"
@@ -24,6 +25,9 @@ func main() {
 
 	// Initialize Database
 	db.Initialize(*sqlite3db_name)
+
+	// Initialize JWT
+	jwt.InitJWT()
 
 	tcp_listner, err := net.ListenTCP("tcp", &net.TCPAddr{IP: nil, Port: *port})
 	if err != nil {
