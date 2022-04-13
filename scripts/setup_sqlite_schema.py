@@ -12,9 +12,13 @@ args = parser.parse_args()
 # Connect to the database
 conn = sq.connect(args.database)
 
-# Create user table schema with id, name, group, public_key
-conn.execute('''CREATE TABLE IF NOT EXISTS users
-                (id INTEGER PRIMARY KEY, `name` TEXT, `group` TEXT, `public_key` TEXT)''')
+# Create voters table schema with id, unique name, grouptype, public_key
+conn.execute('''CREATE TABLE IF NOT EXISTS voters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE,
+    grouptype TEXT,
+    public_key TEXT
+)''')
 
 if (args.testing):
     pass
