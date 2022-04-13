@@ -1,7 +1,7 @@
 issues:
   exclude-rules:
     # CGO Problem
-    - path: internal/server/api/auth/auth.go
+    - path: internal/server/api/auth/signVerify.go
       linters:
         - typecheck
     - path: test/libsodium_client/main.go

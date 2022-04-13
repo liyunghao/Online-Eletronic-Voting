@@ -11,13 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-/*
-#cgo LDFLAGS: -lsodium
-#include <sodium.h>
-*/
-import "C"
-
-var ChallengeCache = make(map[string][]byte)
+var challengeCache = make(map[string][]byte)
 
 func PreAuth(name *pb.VoterName) (*pb.Challenge, error) {
 	// Check if requested voter has record in database.
@@ -43,7 +37,7 @@ func PreAuth(name *pb.VoterName) (*pb.Challenge, error) {
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
 	}
-	ChallengeCache[name.Name] = challenge
+	challengeCache[name.Name] = challenge
 
 	return &pb.Challenge{Value: challenge}, nil
 }
@@ -76,7 +70,7 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 	}
 
 	// Check if Voter name exist in Challenge Cache
-	if _, ok := ChallengeCache[req.Name.Name]; !ok {
+	if _, ok := challengeCache[req.Name.Name]; !ok {
 		return nil, status.Error(codes.InvalidArgument, "Voter's corresponding challenge not found")
 	}
 
@@ -86,12 +80,7 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 		return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
 	}
 
-	if C.crypto_sign_verify_detached(
-		(*C.uchar)(&req.Response.Value[0]),
-		(*C.uchar)(&ChallengeCache[req.Name.Name][0]),
-		C.ulonglong(len(ChallengeCache[req.Name.Name])),
-		(*C.uchar)(&sign_pk[0]),
-	) == 0 {
+	if isValidSignature(sign_pk, challengeCache[req.Name.Name], req.Response.Value) {
 		return &pb.AuthToken{Value: []byte("Verify")}, nil
 	} else {
 		return nil, status.Error(codes.PermissionDenied, "Invalid signature")
