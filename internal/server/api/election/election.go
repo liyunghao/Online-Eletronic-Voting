@@ -2,17 +2,25 @@ package election
 
 import (
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
+	"time"
 )
 
 type Election struct {
 	name string
 	groups []string
 	choice []string
+	t time
 }
 
 var elections []Election
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
+	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
+		return &pb.Status{Code: 2}, status.Error(codes.InvalidArgument, "At least one group and one choice should be listed.")
+	}
+	new_elect := Election{}
 	return &pb.Status{Code: 200}, nil
 }
 
