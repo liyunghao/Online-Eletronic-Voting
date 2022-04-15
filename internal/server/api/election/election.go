@@ -11,17 +11,22 @@ type Election struct {
 	name string
 	groups []string
 	choice []string
-	t time
+	t time.Time
 }
 
-var elections []Election
+elections := make(map([string]Election))
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
 	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
 		return &pb.Status{Code: 2}, status.Error(codes.InvalidArgument, "At least one group and one choice should be listed.")
 	}
-	new_elect := Election{}
-	return &pb.Status{Code: 200}, nil
+	new_elect := Election{election.Name, election.Groups, election.Choices, election.EndDate.AsTime()}
+	value, isExist := elections[election.Name]
+	if !isExist {
+		return &pb.Status{Code: 3}, status.Error(codes.InvalidArgument, "Election already exists.")
+	}
+	elections[election.Name] = new_elect
+	return &pb.Status{Code: 0}, nil
 }
 
 func CastVote(vote *pb.Vote) (*pb.Status, error) {
