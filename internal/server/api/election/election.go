@@ -19,14 +19,22 @@ type Election struct {
 var elections = make(map[string]Election)
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
+	_, err = VerifyToken(election.Token)
+	if err != nil {
+		return &pb.Status{Code: 1}, status.Error(codes.PermissionDenied, "Invalid authentication code")
+	}
 	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
 		return &pb.Status{Code: 2}, status.Error(codes.InvalidArgument, "At least one group and one choice should be listed.")
 	}
-	new_elect := Election{election.Name, election.Groups, election.Choices, election.EndDate.AsTime()}
-	value, isExist := elections[election.Name]
+	_, isExist := elections[election.Name]
 	if !isExist {
-		return &pb.Status{Code: 3}, status.Error(codes.InvalidArgument, "Election already exists.")
+		return &pb.Status{Code: 3}, status.Error(codes.AlreadyExists, "Election already exists.")
 	}
+	choice_map := make(map[string]int)
+	for i := 0; i < len(election.Choices); i++ {
+		choice_map[election.Choices[i]] = 0
+	}
+	new_elect := Election{election.Name, election.Groups, choice_map, []string{}, election.EndDate.AsTime()}
 	elections[election.Name] = new_elect
 	return &pb.Status{Code: 0}, nil
 }
