@@ -1,6 +1,8 @@
 # Building Executable
 # Global Setting Variable
 PACKAGE_PREFIX=github.com/liyunghao/Online-Eletronic-Voting
+PROJECT_NAME=online-electronic-voting-machine
+VERSION=0.0.1
 
 # Artifacts
 BUILD_ARTIFACTS=client server grpcConn
@@ -19,6 +21,10 @@ build-server:
 .PHONY: build-test
 build-test:
 	go build ${PACKAGE_PREFIX}/test/grpcConn
+
+.PHONY: build-image
+build-image:
+	docker build -t ${PROJECT_NAME}:${VERSION} .
 
 .PHONY: compile-proto
 compile-proto:
