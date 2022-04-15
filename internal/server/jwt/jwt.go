@@ -3,9 +3,10 @@ package jwt
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"log"
 	"time"
-	"errors"
+
 	"github.com/golang-jwt/jwt"
 )
 
@@ -24,20 +25,21 @@ func InitJWT() {
 
 	log.Println("JWT_Secret_KEY: ", base64.StdEncoding.EncodeToString(key))
 
-	JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
+	// JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
+	JWT_Secret_KEY = []byte("JWT_Secret_KEY")
 
 	if err != nil {
 		log.Fatalf("Failed to generate JWT secret key. Something WRONG: %v\n", err)
 	}
 }
 
-func VerifyToken(tokenString string) (string, error){
+func VerifyToken(tokenString string) (string, error) {
 	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return JWT_Secret_KEY, nil
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return claims["Name"].(string), nil
+		return claims["name"].(string), nil
 	} else {
 		return "", errors.New("Invalid User")
 	}
