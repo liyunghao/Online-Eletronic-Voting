@@ -4,6 +4,14 @@ import (
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 )
 
+type Election struct {
+	name string
+	groups []string
+	choice []string
+}
+
+var elections []Election
+
 func CreateElection(election *pb.Election) (*pb.Status, error) {
 	return &pb.Status{Code: 200}, nil
 }
