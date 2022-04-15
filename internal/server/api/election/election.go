@@ -12,14 +12,14 @@ type Election struct {
 	name string
 	groups []string
 	t time.Time
-	choices map([string]int)
-	voted map([string]bool)
+	choices map[string]int
+	voted map[string]bool
 }
 
 var elections = make(map[string]Election)
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
-	_, err = VerifyToken(election.Token)
+	_, err := jwt.VerifyToken(string(election.Token.Value))
 	if err != nil {
 		return &pb.Status{Code: 1}, status.Error(codes.PermissionDenied, "Invalid authentication code")
 	}
@@ -34,15 +34,15 @@ func CreateElection(election *pb.Election) (*pb.Status, error) {
 	for i := 0; i < len(election.Choices); i++ {
 		choice_map[election.Choices[i]] = 0
 	}
-	new_elect := Election{election.Name, election.Groups, choice_map, []string{}, election.EndDate.AsTime()}
+	new_elect := Election{election.Name, election.Groups, election.EndDate.AsTime(), choice_map, make(map[string]bool)}
 	elections[election.Name] = new_elect
 	return &pb.Status{Code: 0}, nil
 }
 
 func CastVote(vote *pb.Vote) (*pb.Status, error) {
-	tokenstring := vote.Token
+	tokenstring := string(vote.Token.Value)
 	election, ok := elections[vote.ElectionName]
-	name, err := VerifyToken(tokenstring)
+	name, err := jwt.VerifyToken(tokenstring)
 
 	if err != nil {
 		// Invalid token 
@@ -71,12 +71,12 @@ func CastVote(vote *pb.Vote) (*pb.Status, error) {
 func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
     var status int32
     var counts []*pb.VoteCount
-    if elecName, ok := elections[elecName]; ok {
+    if _, ok := elections[elecName.Name]; ok {
         now := time.Now()
-        if elections[elecName].t.Before(now) {
+        if elections[elecName.Name].t.Before(now) {
             status = 0
-			for choiceName, count := choices {
-                counts = append(counts, *pd.VoteCount{ChoiceName: choiceName, Count: count})
+			for choiceName, cnt := range elections[elecName.Name].choices {
+                counts = append(counts, &pb.VoteCount{ChoiceName: choiceName, Count: int32(cnt)})
 			}
         } else {
             status = 2
@@ -87,6 +87,6 @@ func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
 
 	return &pb.ElectionResult{
 		Status: status,
-        Count: counts
+        Counts: counts,
 	}, nil
 }

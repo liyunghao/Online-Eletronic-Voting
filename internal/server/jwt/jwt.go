@@ -32,17 +32,14 @@ func InitJWT() {
 }
 
 func VerifyToken(tokenString string) (string, error){
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHS384); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
+	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return JWT_Secret_KEY, nil
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return claims[Name], nil
+		return claims["Name"].(string), nil
 	} else {
-		return nil, errors.New("Invalid User")
+		return "", errors.New("Invalid User")
 	}
 }
 func GenerateToken(name string, group string) ([]byte, error) {
