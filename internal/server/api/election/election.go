@@ -10,11 +10,12 @@ import (
 type Election struct {
 	name string
 	groups []string
-	choice []string
-	t time
+	choices []string
+    votes []int
+	t time.Time
 }
 
-var elections []Election
+elections := make(map[string]Election)
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
 	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
@@ -29,8 +30,27 @@ func CastVote(vote *pb.Vote) (*pb.Status, error) {
 }
 
 func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
+    var status int32
+    var counts []*pb.VoteCount
+    if elecName, ok := elections[elecName]; ok {
+        now := time.Now()
+        if elections[elecName].t.Before(now) {
+            status = 0
+            for i := range {
+                choiceName = elections[elecName].choices[i]
+                count = elections[elecName].votes[i]
+                counts = append(count, *pd.VoteCount{ChioceName: , Count: count}) 
+            }
+        } else {
+            status = 2
+        }
+    } else {
+        status = 1
+    }
+
 	return &pb.ElectionResult{
-		Status: 200,
-		Counts: []*pb.VoteCount{{ChoiceName: "Trump", Count: 1}},
+		Status: status,
+        Count: counts
+		// Counts: []*pb.VoteCount{ChoiceName: "Trump", Count: 1},
 	}, nil
 }
