@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"log"
 	"time"
-
+	"errors"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -31,6 +31,20 @@ func InitJWT() {
 	}
 }
 
+func VerifyToken(tokenString string) (string, error){
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHS384); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return JWT_Secret_KEY, nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims[Name], nil
+	} else {
+		return nil, errors.New("Invalid User")
+	}
+}
 func GenerateToken(name string, group string) ([]byte, error) {
 	token := jwt.New(jwt.GetSigningMethod("HS384"))
 	token.Claims = &JWT_AuthTokenClaims{

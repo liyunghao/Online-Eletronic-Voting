@@ -5,17 +5,18 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/codes"
 	"time"
+	"github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 )
 
 type Election struct {
 	name string
 	groups []string
-	choices []string
-    votes []int
 	t time.Time
+	choices map([string]int)
+	voted map([string]bool)
 }
 
-elections := make(map[string]Election)
+var elections = make(map[string]Election)
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
 	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
@@ -26,7 +27,32 @@ func CreateElection(election *pb.Election) (*pb.Status, error) {
 }
 
 func CastVote(vote *pb.Vote) (*pb.Status, error) {
-	return &pb.Status{Code: 200}, nil
+	tokenstring := vote.Token
+	election, ok := elections[vote.ElectionName]
+	name, err := VerifyToken(tokenstring)
+
+	if err != nil {
+		// Invalid token 
+		return &pb.Status{Code: 1}, nil
+	} else if !ok {
+		// Invalid election name
+		return &pb.Status{Code: 2}, nil
+	} else if false {
+		// check if user group
+		return &pb.Status{Code: 3}, nil
+	} else if _, ok := election.voted[name]; ok {
+		// already votes
+		return &pb.Status{Code: 4}, nil
+	} else {
+		// Invalid choice
+		if _, found := election.choices[vote.ChoiceName]; !found {
+			return &pb.Status{Code: 5}, nil
+		} else {
+			elections[vote.ElectionName].choices[vote.ChoiceName] += 1
+			elections[vote.ElectionName].voted[name] = true
+			return &pb.Status{Code: 0}, nil
+		}
+	}
 }
 
 func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
@@ -36,11 +62,9 @@ func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
         now := time.Now()
         if elections[elecName].t.Before(now) {
             status = 0
-            for i := range {
-                choiceName = elections[elecName].choices[i]
-                count = elections[elecName].votes[i]
-                counts = append(count, *pd.VoteCount{ChioceName: , Count: count}) 
-            }
+			for choiceName, count := choices {
+                counts = append(counts, *pd.VoteCount{ChoiceName: choiceName, Count: count})
+			}
         } else {
             status = 2
         }
@@ -51,6 +75,5 @@ func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
 	return &pb.ElectionResult{
 		Status: status,
         Count: counts
-		// Counts: []*pb.VoteCount{ChoiceName: "Trump", Count: 1},
 	}, nil
 }
