@@ -43,6 +43,7 @@ func VerifyToken(tokenString string) (string, error) {
 		return "", errors.New("Invalid User")
 	}
 }
+
 func GenerateToken(name string, group string) ([]byte, error) {
 	token := jwt.New(jwt.GetSigningMethod("HS384"))
 	token.Claims = &JWT_AuthTokenClaims{

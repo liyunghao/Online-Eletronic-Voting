@@ -19,15 +19,20 @@ var elections = make(map[string]election_rec)
 
 func CreateElection(election *pb.Election) (*pb.Status, error) {
 	_, err := jwt.VerifyToken(string(election.Token.Value))
+	var ret_status int32 = 0
+
 	if err != nil {
-		return &pb.Status{Code: 1}, nil
+		ret_status = 1
+		return &pb.Status{Code: &ret_status}, nil
 	}
 	if len(election.Groups) <= 0 || len(election.Choices) <= 0 {
-		return &pb.Status{Code: 2}, nil
+		ret_status = 2
+		return &pb.Status{Code: &ret_status}, nil
 	}
 	// Check if election exist
-	if _, ok := elections[election.Name]; ok {
-		return &pb.Status{Code: 3}, nil
+	if _, ok := elections[*election.Name]; ok {
+		ret_status = 3
+		return &pb.Status{Code: &ret_status}, nil
 	}
 
 	// Initialize Choices
@@ -36,36 +41,42 @@ func CreateElection(election *pb.Election) (*pb.Status, error) {
 		choices[choice] = 0
 	}
 
-	new_elect := election_rec{election.Name, election.Groups, election.EndDate.AsTime(), choices, make(map[string]bool)}
-	elections[election.Name] = new_elect
+	new_elect := election_rec{*election.Name, election.Groups, election.EndDate.AsTime(), choices, make(map[string]bool)}
+	elections[*election.Name] = new_elect
 
-	return &pb.Status{Code: 0}, nil
+	return &pb.Status{Code: &ret_status}, nil
 }
 
 func CastVote(vote *pb.Vote) (*pb.Status, error) {
 	name, err := jwt.VerifyToken(string(vote.Token.Value))
-	election, ok := elections[vote.ElectionName]
+	election, ok := elections[*vote.ElectionName]
+	var ret_status int32 = 0
 
 	if err != nil {
 		// Invalid token
-		return &pb.Status{Code: 1}, nil
+		ret_status = 1
+		return &pb.Status{Code: &ret_status}, nil
 	} else if !ok {
 		// Invalid election name
-		return &pb.Status{Code: 2}, nil
+		ret_status = 2
+		return &pb.Status{Code: &ret_status}, nil
 	} else if false {
 		// check if user group
-		return &pb.Status{Code: 3}, nil
+		ret_status = 3
+		return &pb.Status{Code: &ret_status}, nil
 	} else if _, ok := election.Voted[name]; ok {
 		// already votes
-		return &pb.Status{Code: 4}, nil
+		ret_status = 4
+		return &pb.Status{Code: &ret_status}, nil
 	} else {
 		// Invalid choice
-		if _, found := election.Choices[vote.ChoiceName]; !found {
-			return &pb.Status{Code: 5}, nil
+		if _, found := election.Choices[*vote.ChoiceName]; !found {
+			ret_status = 5
+			return &pb.Status{Code: &ret_status}, nil
 		} else {
-			elections[vote.ElectionName].Choices[vote.ChoiceName] += 1
-			elections[vote.ElectionName].Voted[name] = true
-			return &pb.Status{Code: 0}, nil
+			elections[*vote.ElectionName].Choices[*vote.ChoiceName] += 1
+			elections[*vote.ElectionName].Voted[name] = true
+			return &pb.Status{Code: &ret_status}, nil
 		}
 	}
 }
@@ -73,12 +84,13 @@ func CastVote(vote *pb.Vote) (*pb.Status, error) {
 func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
 	var status int32
 	var counts []*pb.VoteCount
-	if _, ok := elections[elecName.Name]; ok {
+	if _, ok := elections[*elecName.Name]; ok {
 		now := time.Now()
-		if elections[elecName.Name].EndDate.Before(now) {
+		if elections[*elecName.Name].EndDate.Before(now) {
 			status = 0
-			for choiceName, cnt := range elections[elecName.Name].Choices {
-				counts = append(counts, &pb.VoteCount{ChoiceName: choiceName, Count: int32(cnt)})
+			for choiceName, cnt := range elections[*elecName.Name].Choices {
+				cnt := int32(cnt)
+				counts = append(counts, &pb.VoteCount{ChoiceName: &choiceName, Count: &cnt})
 			}
 		} else {
 			status = 2
@@ -88,7 +100,7 @@ func GetResult(elecName *pb.ElectionName) (*pb.ElectionResult, error) {
 	}
 
 	return &pb.ElectionResult{
-		Status: status,
+		Status: &status,
 		Counts: counts,
 	}, nil
 }

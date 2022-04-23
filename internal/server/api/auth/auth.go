@@ -38,7 +38,7 @@ func PreAuth(name *pb.VoterName) (*pb.Challenge, error) {
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
 	}
-	challengeCache[name.Name] = challenge
+	challengeCache[*name.Name] = challenge
 
 	return &pb.Challenge{Value: challenge}, nil
 }
@@ -73,7 +73,7 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 	}
 
 	// Check if Voter name exist in Challenge Cache
-	if _, ok := challengeCache[req.Name.Name]; !ok {
+	if _, ok := challengeCache[*req.Name.Name]; !ok {
 		return nil, status.Error(codes.InvalidArgument, "Voter's corresponding challenge not found")
 	}
 
@@ -83,7 +83,7 @@ func Auth(req *pb.AuthRequest) (*pb.AuthToken, error) {
 		return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
 	}
 
-	if isValidSignature(sign_pk, challengeCache[req.Name.Name], req.Response.Value) {
+	if isValidSignature(sign_pk, challengeCache[*req.Name.Name], req.Response.Value) {
 		// Generate Jwt token and send back to client
 		token, err := jwt.GenerateToken(name, group)
 		if err != nil {
