@@ -2,6 +2,9 @@ package storage
 
 import "time"
 
+// Global Storage Variable
+var DataStorage Storage
+
 // Public Communication Interface
 type User struct {
 	Name      string
@@ -16,7 +19,7 @@ type Election struct {
 	EndDate time.Time
 }
 
-type ElectionResults map[string]int
+type ElectionResults map[string]int32
 
 // Storage Interface Definition
 type Storage interface {

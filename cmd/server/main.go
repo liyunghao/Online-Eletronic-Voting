@@ -8,23 +8,25 @@ import (
 	"net"
 	"os"
 
-	db "github.com/liyunghao/Online-Eletronic-Voting/internal/server/database"
 	jwt "github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
+	st "github.com/liyunghao/Online-Eletronic-Voting/internal/server/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 	"google.golang.org/grpc"
 )
 
 var (
 	port           = flag.Int("port", 8080, "Specify which port should gRPC server listen on")
+	storage_type   = flag.String("storage", "memory", "Specify which storage type should be used")
 	sqlite3db_name = flag.String("sqlite3db", "./database.db", "Specify which sqlite3 database should be used")
 )
 
 func main() {
 	flag.Parse()
 
-	// Initialize Database
-	db.Initialize(*sqlite3db_name)
+	// Initialize Storage System (Currently only support memory storage)
+	st.DataStorage = &st.MemoryStorage{}
+	st.DataStorage.Initialize()
 
 	// Initialize JWT
 	jwt.InitJWT()
@@ -86,14 +88,24 @@ func cli(notifyStop chan bool) {
 			public_key := stdin_scanner.Text()
 
 			// Register voter
-			RegisterVoter(name, group, public_key)
+			err := st.DataStorage.CreateUser(name, group, public_key)
+			if err != nil {
+				fmt.Printf("Register failed. Something WRONG: %v\n", err)
+			} else {
+				fmt.Printf("Register success\n")
+			}
 		case "unregister":
 			fmt.Printf("Enter name: ")
 			stdin_scanner.Scan()
 			name := stdin_scanner.Text()
 
 			// Unregister voter
-			UnregisterVoter(name)
+			err := st.DataStorage.RemoveUser(name)
+			if err != nil {
+				fmt.Printf("Unregister failed. Something WRONG: %v\n", err)
+			} else {
+				fmt.Printf("Unregister success\n")
+			}
 		case "exit":
 			notifyStop <- true
 			return
