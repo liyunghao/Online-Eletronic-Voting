@@ -33,9 +33,12 @@ func InitJWT() {
 }
 
 func VerifyToken(tokenString string) (string, error) {
-	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return JWT_Secret_KEY, nil
 	})
+	if err != nil {
+		return "", err
+	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return claims["name"].(string), nil
