@@ -64,6 +64,10 @@ func (m *MemoryStorage) RemoveUser(name string) error {
 
 // Election
 func (m *MemoryStorage) CreateElection(name string, groups []string, choices []string, endDate time.Time) error {
+	if _, ok := m.elections[name]; ok {
+		return fmt.Errorf("election already exists")
+	}
+
 	m.elections[name] = struct {
 		Election
 		choices_res map[string]int

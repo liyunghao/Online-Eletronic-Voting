@@ -20,17 +20,14 @@ func CreateElection(election *pb.Election) (*pb.Status, error) {
 		ret_status = 2
 		return &pb.Status{Code: &ret_status}, nil
 	}
-	// Check if election exist
-	_, err = st.DataStorage.FetchElection(*election.Name)
-	if err == nil {
-		ret_status = 3
-		return &pb.Status{Code: &ret_status}, nil
-	}
-
-	// Initialize Choices
+	// Create Election
 	err = st.DataStorage.CreateElection(*election.Name, election.Groups, election.Choices, election.EndDate.AsTime())
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
+		if err.Error() == "election already exists" {
+			ret_status = 3
+		} else {
+			return nil, status.Error(codes.Internal, "Internal server error: "+err.Error())
+		}
 	}
 	return &pb.Status{Code: &ret_status}, nil
 }
