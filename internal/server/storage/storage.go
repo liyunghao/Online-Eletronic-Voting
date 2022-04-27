@@ -7,16 +7,16 @@ var DataStorage Storage
 
 // Public Communication Interface
 type User struct {
-	Name      string
-	Group     string
-	PublicKey string
+	Name      string `json:"name"`
+	Group     string `json:"group"`
+	PublicKey string `json:"public_key"`
 }
 
 type Election struct {
-	Name    string
-	Groups  []string
-	Choices []string
-	EndDate time.Time
+	Name    string    `json:"name"`
+	Groups  []string  `json:"groups"`
+	Choices []string  `json:"choices"`
+	EndDate time.Time `json:"end_date"`
 }
 
 type ElectionResults map[string]int32
