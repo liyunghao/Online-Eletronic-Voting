@@ -25,8 +25,7 @@ func InitJWT() {
 
 	log.Println("JWT_Secret_KEY: ", base64.StdEncoding.EncodeToString(key))
 
-	// JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
-	JWT_Secret_KEY = []byte("JWT_Secret_KEY")
+	JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
 
 	if err != nil {
 		log.Fatalf("Failed to generate JWT secret key. Something WRONG: %v\n", err)
@@ -34,9 +33,12 @@ func InitJWT() {
 }
 
 func VerifyToken(tokenString string) (string, error) {
-	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return JWT_Secret_KEY, nil
 	})
+	if err != nil {
+		return "", err
+	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return claims["name"].(string), nil
@@ -44,6 +46,7 @@ func VerifyToken(tokenString string) (string, error) {
 		return "", errors.New("Invalid User")
 	}
 }
+
 func GenerateToken(name string, group string) ([]byte, error) {
 	token := jwt.New(jwt.GetSigningMethod("HS384"))
 	token.Claims = &JWT_AuthTokenClaims{
