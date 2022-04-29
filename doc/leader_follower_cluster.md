@@ -14,6 +14,7 @@ Also known as: `Primary Backup` , `Passive Replication` , `Master-Slave Pattern`
 基本設定：
 
 - 管理 API 將以 RESTful API 來實作，簡化純 TCP 實作上的問題
+  - 所有路徑均以 `POST` 方法實作
 - 管理 Port: 9000
   - (暫時不管資安上的問題，未來可以掛上 SSL 以及加上 Cluster 認證來處理這個問題)
 - 目前的設計非常不好 Scale，未來有機會可以修正
