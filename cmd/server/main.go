@@ -10,7 +10,7 @@ import (
 
 	jwt "github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
-	st "github.com/liyunghao/Online-Eletronic-Voting/internal/server/storage"
+	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 	"google.golang.org/grpc"
 )
