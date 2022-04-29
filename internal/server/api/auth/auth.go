@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 
 	"github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
-	st "github.com/liyunghao/Online-Eletronic-Voting/internal/server/storage"
+	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

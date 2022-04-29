@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y sqlite3 build-essential libsodium-dev p
 # Setup workdir and build code
 COPY . /app
 WORKDIR /app
-RUN make build-server && \
-    python3 scripts/setup_sqlite_schema.py
+RUN make build-server
 
 ENTRYPOINT [ "./server" ]
