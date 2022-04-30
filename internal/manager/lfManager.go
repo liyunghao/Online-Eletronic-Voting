@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,40 +27,30 @@ type Cluster struct {
 }
 
 type Logs struct {
-	Logs []Log `json: "logs"`
+	Logs []Log `json:"logs"`
 }
 
 type Log struct {
-	Cmd     string  `json: "storage_cmd"`
-	Payload Payload `json: "payload"`
+	Cmd     string  `json:"storage_cmd"`
+	Payload Payload `json:"payload"`
 }
 
 type Payload struct {
 }
 
 type LfManager struct {
+	Config Config // config will be stored when Initiaize is called
 }
 
 func (m *LfManager) BroadcastHeartBeat() error {
-	// read config file
-	configFile, err := os.Open("config file name")
-	if err != nil {
-		// failed to read config file
-		return status.Error(codes.Internal, "Internal server error: "+err.Error())
-	}
-	defer configFile.Close()
-	byteValue, _ := ioutil.ReadAll(configFile)
-	var config Config
-	json.Unmarshal(byteValue, &config)
-
 	// iterate through nodes to send heartbeat
-	for i := 0; i < len(config.Clusters); i++ {
-		if config.Clusters[i].Id != 0 { // suppose id 0 is leader
+	for i := 0; i < len(m.Config.Clusters); i++ {
+		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
 			postBody, _ := json.Marshal(map[string]int{
 				"status": 200,
 			})
 			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post(config.Clusters[i].Ip, "application/json", respBody)
+			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
 			if resp.StatusCode != 200 {
 				return status.Error(codes.Internal, "Internal server error: "+err.Error())
 			}
@@ -73,23 +62,12 @@ func (m *LfManager) BroadcastHeartBeat() error {
 }
 
 func (m *LfManager) WriteSync(storageCmd string, payload string) error {
-	// read config file
-	configFile, err := os.Open("config file name")
-	if err != nil {
-		// failed to read config file
-		return status.Error(codes.Internal, "Internal server error: "+err.Error())
-	}
-	defer configFile.Close()
-	byteValue, _ := ioutil.ReadAll(configFile)
-	var config Config
-	json.Unmarshal(byteValue, &config)
-
 	// iterate through nodes to send write sync
-	for i := 0; i < len(config.Clusters); i++ {
-		if config.Clusters[i].Id != 0 { // suppose id 0 is leader
+	for i := 0; i < len(m.Config.Clusters); i++ {
+		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
 			postBody, _ := json.Marshal(payload)
 			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post(config.Clusters[i].Ip, "application/json", respBody)
+			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
 			if resp.StatusCode != 200 {
 				return status.Error(codes.Internal, "Internal server error: "+err.Error())
 			}
@@ -100,33 +78,23 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 }
 
 func (m *LfManager) ElectForLeader() error {
-	// read config file
-	configFile, err := os.Open("config file name")
-	if err != nil {
-		// failed to read config file
-	}
-	defer configFile.Close()
-	byteValue, _ := ioutil.ReadAll(configFile)
-	var config Config
-	json.Unmarshal(byteValue, &config)
-
 	// iterate through all nodes to check if this is the highest priority node
 	var i int
-	for i = 0; i < len(config.Clusters); i++ {
-		if config.Clusters[i].Id < config.Node.Id {
+	for i = 0; i < len(m.Config.Clusters); i++ {
+		if m.Config.Clusters[i].Id < m.Config.Node.Id {
 			// not the highest priority
 			break
 		}
 	}
-	if i == len(config.Clusters) {
+	if i == len(m.Config.Clusters) {
 		// this is the highest priority node to become leader
-		for i = 0; i < len(config.Clusters); i++ {
-			if config.Clusters[i].Id != config.Node.Id {
+		for i = 0; i < len(m.Config.Clusters); i++ {
+			if m.Config.Clusters[i].Id != m.Config.Node.Id {
 				postBody, _ := json.Marshal(map[string]int{
-					"node_idx": config.Node.Id,
+					"node_idx": m.Config.Node.Id,
 				})
 				respBody := bytes.NewBuffer(postBody)
-				resp, err := http.Post(config.Clusters[i].Ip, "application/json", respBody)
+				resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
 				if resp.StatusCode != 200 {
 					return status.Error(codes.Internal, "Internal server error: "+err.Error())
 				}
@@ -137,24 +105,14 @@ func (m *LfManager) ElectForLeader() error {
 }
 
 func (m *LfManager) CatchUp() error {
-	// read config file
-	configFile, err := os.Open("config file name")
-	if err != nil {
-		// failed to read config file
-	}
-	defer configFile.Close()
-	byteValue, _ := ioutil.ReadAll(configFile)
-	var config Config
-	json.Unmarshal(byteValue, &config)
-
 	snapshot_id := 1 // need to know how snapshot id is stored
 
 	idx := -1
 	var ip string
-	for i := 0; i < len(config.Clusters); i++ {
-		if config.Clusters[i].Id < idx || idx < 0 {
-			idx = config.Clusters[i].Id
-			ip = config.Clusters[i].Ip
+	for i := 0; i < len(m.Config.Clusters); i++ {
+		if m.Config.Clusters[i].Id < idx || idx < 0 {
+			idx = m.Config.Clusters[i].Id
+			ip = m.Config.Clusters[i].Ip
 		}
 	}
 	postBody, _ := json.Marshal(map[string]int{
