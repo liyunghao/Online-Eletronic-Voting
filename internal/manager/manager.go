@@ -17,7 +17,7 @@ type Manager interface {
 	Start(notifyStop chan bool) error
 
 	// Getter
-	GetRoles() string // Retrieve current roles
+	GetRoles() bool // Retrieve current roles; return 1 if Primary else 0 
 
 	// Active
 	// Leaders Capabilities
@@ -41,16 +41,19 @@ type Manager interface {
 
 // TODO:
 // 1. STATE + INIT							--> TONY
-// 2. REPLICA LOG  							--> ELVEN
+// 2. REPLICA LOG							--> ELVEN
 // 3. ACTIVE								--> TSWANG
 // 4. HTTP SERVER + HTTP HANDLER			--> CPC
 // 5. COMBINE INTO CURRENT SERVER CODE
 
-//type Replica struct {
-//Name	[]string `json:"name"`
-//Ip		[]string `json:"ip"`
-//Id		[]string `json:"id"`
-//Leader	[]bool	 `json:"leader"`
-//}
+type Node struct {
+	Name string `json:"name"`
+	Id int `json:"id"`
+}
 
-//var Replicas []Replica
+type Cluster struct {
+	Name	string `json:"name"`
+	Ip		string `json:"ip"`
+	Id		int `json:"id"`
+}
+
