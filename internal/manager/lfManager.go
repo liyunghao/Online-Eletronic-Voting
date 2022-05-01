@@ -76,11 +76,16 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 	var cmd string
 	json.Unmarshal(cmdData, &cmd)
 
+	var logPayload Payload
+
 	switch cmd {
 	case "CreateUser":
 		var user st.User
 		json.Unmarshal(payloadData, &user)
 		st.DataStorage.CreateUser(user.Name, user.Group, user.PublicKey)
+		logPayload.Name = user.Name
+		logPayload.Group = user.Group
+		logPayload.PublicKey = user.Group
 	// case "FetchUser":
 	//     var payload st.User
 	//     json.Unmarshal(payloadData, payload)
@@ -89,11 +94,17 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 		var user st.User
 		json.Unmarshal(payloadData, &user)
 		st.DataStorage.RemoveUser(user.Name)
+		logPayload.Name = user.Name
 
 	case "CreateElection":
 		var election st.Election
 		json.Unmarshal(payloadData, &election)
 		st.DataStorage.CreateElection(election.Name, election.Groups, election.Choices, election.EndDate)
+		logPayload.Name = election.Name
+		logPayload.Groups = election.Groups
+		logPayload.Choices = election.Choices
+		logPayload.EndDate = election.EndDate
+
 	// case "FetchElection":
 	//     var payload st.Election
 	//     json.Unmarshal(payloadData, payload)
@@ -103,9 +114,12 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 		var election vote
 		json.Unmarshal(payloadData, &election)
 		st.DataStorage.VoteElection(election.ElectionName, election.VoterName, election.Choice)
-
+		logPayload.ElectionName = election.ElectionName
+		logPayload.VoterName = election.VoterName
+		logPayload.Choice = election.Choice
 	}
 	w.WriteHeader(http.StatusOK)
+	logs = append(logs, Log{cmd, logPayload})
 }
 
 func (lf *LfManager) DeclareLeaderHandler(w http.ResponseWriter, r *http.Request) {
