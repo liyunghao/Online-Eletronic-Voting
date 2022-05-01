@@ -44,15 +44,15 @@ type Payload struct {
 }
 
 type LfManager struct {
-	Config            Config               // config will be stored when Initiaize is called
+	Config                                 // config will be stored when Initiaize is called
 	replicaLogWrapper st.ReplicaLogWrapper // this ReplicaLogWrapper may be defined in other place rather than in LfManager
 }
 
 func (m *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
-	for i := 0; i < len(m.Config.Clusters); i++ {
-		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
-			resp, err := http.PostForm("http://"+m.Config.Clusters[i].Ip, url.Values{})
+	for i := 0; i < len(m.Clusters); i++ {
+		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
+			resp, err := http.PostForm("http://"+m.Clusters[i].Ip, url.Values{})
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -66,14 +66,14 @@ func (m *LfManager) BroadcastHeartBeat() error {
 
 func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 	// iterate through nodes to send write sync
-	for i := 0; i < len(m.Config.Clusters); i++ {
-		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
+	for i := 0; i < len(m.Clusters); i++ {
+		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
 			postBody, _ := json.Marshal(Log{
 				Cmd:     storageCmd,
 				Payload: payload,
 			})
 			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post("http://"+m.Config.Clusters[i].Ip, "application/json", respBody)
+			resp, err := http.Post("http://"+m.Clusters[i].Ip, "application/json", respBody)
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -87,21 +87,21 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 func (m *LfManager) ElectForLeader() error {
 	// iterate through all nodes to check if this is the highest priority node
 	var i int
-	for i = 0; i < len(m.Config.Clusters); i++ {
-		if m.Config.Clusters[i].Id < m.Config.Node.Id {
+	for i = 0; i < len(m.Clusters); i++ {
+		if m.Clusters[i].Id < m.Node.Id {
 			// not the highest priority
 			break
 		}
 	}
-	if i == len(m.Config.Clusters) {
+	if i == len(m.Clusters) {
 		// this is the highest priority node to become leader
-		for i = 0; i < len(m.Config.Clusters); i++ {
-			if m.Config.Clusters[i].Id != m.Config.Node.Id {
+		for i = 0; i < len(m.Clusters); i++ {
+			if m.Clusters[i].Id != m.Config.Node.Id {
 				postBody, _ := json.Marshal(map[string]int{
-					"node_idx": m.Config.Node.Id,
+					"node_idx": m.Node.Id,
 				})
 				respBody := bytes.NewBuffer(postBody)
-				resp, err := http.Post("http://"+m.Config.Clusters[i].Ip, "application/json", respBody)
+				resp, err := http.Post("http://"+m.Clusters[i].Ip, "application/json", respBody)
 				if resp.StatusCode != http.StatusOK {
 					fmt.Println(err)
 					return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -117,10 +117,10 @@ func (m *LfManager) CatchUp() error {
 
 	idx := -1
 	var ip string
-	for i := 0; i < len(m.Config.Clusters); i++ {
-		if m.Config.Clusters[i].Id < idx || idx < 0 {
-			idx = m.Config.Clusters[i].Id
-			ip = m.Config.Clusters[i].Ip
+	for i := 0; i < len(m.Clusters); i++ {
+		if m.Clusters[i].Id < idx || idx < 0 {
+			idx = m.Clusters[i].Id
+			ip = m.Clusters[i].Ip
 		}
 	}
 	postBody, _ := json.Marshal(map[string]int{
