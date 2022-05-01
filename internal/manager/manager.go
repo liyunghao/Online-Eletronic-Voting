@@ -15,7 +15,6 @@ type Manager interface {
 
 	// will be invoke in an new go routine
 	Start(notifyStop chan bool) error
-    
 
 	// Getter
 	GetRoles() string // Retrieve current roles
