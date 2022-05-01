@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 )
@@ -21,26 +20,18 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	return nil
 }
 
-func route(w http.ResponseWriter, r *http.Request) {
-	// path := r.URL.Path
-
-	switch {
-	// case path == "/writesync":
-	// WriteSyncHandler(w, r)
-
-	}
-
-}
-
 func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
 	// r.ParseForm()
-	storage_cmd := r.FormValue("storage_cmd")
-	payload := r.FormValue("payload")
-	json.Unmarshal()
+	// storage_cmd := r.FormValue("storage_cmd")
+	// body, _ := ioutil.ReadAll(r.Body)
+	// var storage_cmd string
+	// json.Unmarshal(r.FormValue("storage_cmd"), storage_cmd)
 }
+
 func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 
 }
+
 func (lf *LfManager) DeclareLeaderHandler(w http.ResponseWriter, r *http.Request) {
 
 }
@@ -48,6 +39,7 @@ func (lf *LfManager) DeclareLeaderHandler(w http.ResponseWriter, r *http.Request
 func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
 
 }
+
 func (lf *LfManager) RecvElectHandler(w http.ResponseWriter, r *http.Request) {
 
 }
