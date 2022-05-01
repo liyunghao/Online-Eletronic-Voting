@@ -16,3 +16,6 @@ database.db
 
 # Scripts Libsodium Build
 scripts/libsodium_gen/main
+
+# Replica Logs File
+replica.log
