@@ -3,11 +3,9 @@ package manager
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Config struct {
@@ -51,8 +49,9 @@ func (m *LfManager) BroadcastHeartBeat() error {
 			})
 			respBody := bytes.NewBuffer(postBody)
 			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
-			if resp.StatusCode != 200 {
-				return status.Error(codes.Internal, "Internal server error: "+err.Error())
+			if resp.StatusCode != http.StatusOK {
+				fmt.Println(err)
+				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
 			}
 
 		}
@@ -68,8 +67,9 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 			postBody, _ := json.Marshal(payload)
 			respBody := bytes.NewBuffer(postBody)
 			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
-			if resp.StatusCode != 200 {
-				return status.Error(codes.Internal, "Internal server error: "+err.Error())
+			if resp.StatusCode != http.StatusOK {
+				fmt.Println(err)
+				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
 			}
 		}
 	}
@@ -95,8 +95,9 @@ func (m *LfManager) ElectForLeader() error {
 				})
 				respBody := bytes.NewBuffer(postBody)
 				resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
-				if resp.StatusCode != 200 {
-					return status.Error(codes.Internal, "Internal server error: "+err.Error())
+				if resp.StatusCode != http.StatusOK {
+					fmt.Println(err)
+					return fmt.Errorf("Failed with status code %d", resp.StatusCode)
 				}
 			}
 		}
@@ -120,8 +121,9 @@ func (m *LfManager) CatchUp() error {
 	})
 	resBody := bytes.NewBuffer(postBody)
 	resp, err := http.Post(ip, "application/json", resBody)
-	if resp.StatusCode != 200 {
-		return status.Error(codes.Internal, "Internal server error: "+err.Error())
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println(err)
+		return fmt.Errorf("Failed with status code %d:", resp.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
