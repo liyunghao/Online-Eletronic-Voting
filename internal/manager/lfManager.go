@@ -45,7 +45,7 @@ func (m *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
 	for i := 0; i < len(m.Config.Clusters); i++ {
 		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
-			resp, err := http.PostForm(m.Config.Clusters[i].Ip, url.Values{})
+			resp, err := http.PostForm("http://"+m.Config.Clusters[i].Ip, url.Values{})
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -63,7 +63,7 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
 			postBody, _ := json.Marshal(payload)
 			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
+			resp, err := http.Post("http://"+m.Config.Clusters[i].Ip, "application/json", respBody)
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -91,7 +91,7 @@ func (m *LfManager) ElectForLeader() error {
 					"node_idx": m.Config.Node.Id,
 				})
 				respBody := bytes.NewBuffer(postBody)
-				resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
+				resp, err := http.Post("http://"+m.Config.Clusters[i].Ip, "application/json", respBody)
 				if resp.StatusCode != http.StatusOK {
 					fmt.Println(err)
 					return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -117,7 +117,7 @@ func (m *LfManager) CatchUp() error {
 		"snapshot_id": snapshot_id,
 	})
 	resBody := bytes.NewBuffer(postBody)
-	resp, err := http.Post(ip, "application/json", resBody)
+	resp, err := http.Post("http://"+ip, "application/json", resBody)
 	if resp.StatusCode != http.StatusOK {
 		fmt.Println(err)
 		return fmt.Errorf("Failed with status code %d:", resp.StatusCode)
