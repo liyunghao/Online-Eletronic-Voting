@@ -1,33 +1,34 @@
 package manager
 
 import (
-	"os"
-	"os/signal"
+	"context"
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
-	"time"
-	"github.com/gorilla/mux"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"context"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type replicas struct {
-	node Node
+	node    Node
 	cluster []Cluster
 }
 
 type LfManager struct {
-	leader		bool					// if this node is currently leader
-	primary		bool					// if this node is primary node 
-	replicas							// record other replicas' info for broadcast?
-	server		*http.Server
+	replicas      // record other replicas' info for broadcast?
+	leader   bool // if this node is currently leader
+	primary  bool // if this node is primary node
+	server   *http.Server
 }
 
 func (lf *LfManager) Initialize(args ...interface{}) error {
 
-	lf.node, lf.cluster = parseConfig(args[0].(string)) // args[0] -> config filename 
+	lf.node, lf.cluster = lf.ParseConfig(args[0].(string)) // args[0] -> config filename
 
 	// primary node's id is 1 as default
 	if lf.node.Id == 1 {
@@ -40,16 +41,16 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	// handshake?
 
 	// start heartbeat
-	ticker := time.NewTicker (30 * time.Second) // send heartbeat per 30sec 
-	quit := make(chan struct{})					// backdoor to end this func by close(quit)
+	ticker := time.NewTicker(30 * time.Second) // send heartbeat per 30sec
+	quit := make(chan struct{})                // backdoor to end this func by close(quit)
 	go func() {
 		for {
 			select {
-				case <- ticker.C:
-					//lf.BroadcastHeartBeat()
-				case <- quit:
-					ticker.Stop()
-					return
+			case <-ticker.C:
+				//lf.BroadcastHeartBeat()
+			case <-quit:
+				ticker.Stop()
+				return
 			}
 		}
 	}()
@@ -89,7 +90,7 @@ func (lf *LfManager) GetRoles() bool {
 	return lf.primary
 }
 
-func parseConfig(filename string) (Node, []Cluster) {
+func (lf *LfManager) ParseConfig(filename string) (Node, []Cluster) {
 	config, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -98,7 +99,6 @@ func parseConfig(filename string) (Node, []Cluster) {
 	var tmp replicas
 	bytes, _ := ioutil.ReadAll(config)
 	json.Unmarshal(bytes, &tmp)
-
 
 	return tmp.node, tmp.cluster
 
@@ -123,5 +123,3 @@ func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
 func (lf *LfManager) RecvElectHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
-
-
