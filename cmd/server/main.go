@@ -25,8 +25,19 @@ func main() {
 	flag.Parse()
 
 	// Initialize Storage System (Currently only support memory storage)
-	st.DataStorage = &st.MemoryStorage{}
-	st.DataStorage.Initialize()
+	memStore := &st.MemoryStorage{}
+	err := memStore.Initialize()
+
+	if err != nil {
+		log.Fatalf("Failed to initialize storage system at MemStore: %v", err)
+	}
+
+	// Replica Hardening Logs
+	st.DataStorage = &st.ReplicaLogWrapper{}
+	err = st.DataStorage.Initialize(memStore, false)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage system at ReplicaLogWrapper: %v", err)
+	}
 
 	// Initialize JWT
 	jwt.InitJWT()
