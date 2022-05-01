@@ -3,7 +3,6 @@ package manager
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -48,18 +47,6 @@ type vote struct {
 }
 
 type LfManager struct {
-}
-
-var LFManger LfManager
-
-func (lf *LfManager) Initialize(args ...interface{}) error {
-	http.HandleFunc("/hearbeat", lf.HeartBeatHandler)
-	http.HandleFunc("/writesync", lf.WriteSyncHandler)
-	http.HandleFunc("/declare_capability", lf.DeclareLeaderHandler)
-	http.HandleFunc("/catch_up", lf.CatchUpHandler)
-	http.HandleFunc("/recv_elect", lf.RecvElectHandler)
-	log.Fatal(http.ListenAndServe(":9000", nil))
-	return nil
 }
 
 func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
