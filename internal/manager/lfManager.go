@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 )
 
 type Config struct {
@@ -26,7 +28,11 @@ type Cluster struct {
 }
 
 type Logs struct {
-	Logs []Log `json:"logs"`
+	Logs []LogString `json:"logs"`
+}
+
+type LogString struct {
+	log string
 }
 
 type Log struct {
@@ -38,7 +44,8 @@ type Payload struct {
 }
 
 type LfManager struct {
-	Config Config // config will be stored when Initiaize is called
+	Config            Config               // config will be stored when Initiaize is called
+	replicaLogWrapper st.ReplicaLogWrapper // this ReplicaLogWrapper may be defined in other place rather than in LfManager
 }
 
 func (m *LfManager) BroadcastHeartBeat() error {
@@ -131,9 +138,10 @@ func (m *LfManager) CatchUp() error {
 
 	var logs Logs
 	json.Unmarshal(body, &logs)
+
 	for i := 0; i < len(logs.Logs); i++ {
-		// store logs.Logs[i].Payload into logs
-		// need to know how the logs are stored
+		// store logs.Logs[i].log into replicaLogWrapper
+		m.replicaLogWrapper.logFile.Write([]byte(logs.Logs[i].log))
 	}
 	return nil
 }
