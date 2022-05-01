@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -38,23 +41,68 @@ func (r *ReplicaLogWrapper) Initialize(args ...interface{}) error {
 		perm |= os.O_TRUNC
 	}
 	r.logFile, err = os.OpenFile(replicaLogFileName, perm, 0644)
-
-	// Recovering
 	if err != nil {
-		err = r.recover()
+		return err
 	}
 
-	return err
+	// Recovering
+	err = r.recover()
+	if err != nil {
+		return err
+	}
+	log.Println("Log Recovering Done")
+
+	return nil
 }
 
 func (r *ReplicaLogWrapper) recover() error {
-	// reader := bufio.NewScanner(r.logFile)
+	reader := bufio.NewScanner(r.logFile)
 
-	// for reader.Scan() {
-	// 	line := reader.Text()
-	// }
+	for reader.Scan() {
+		line := reader.Text()
 
-	return nil
+		// Parse
+		switch line[0] {
+		case '1':
+			var user User
+			err := json.Unmarshal([]byte(line[2:]), &user)
+			if err != nil {
+				return err
+			}
+			_ = r.engine.CreateUser(user.Name, user.Group, user.PublicKey)
+		case '2':
+			var param struct {
+				Name string `json:"name"`
+			}
+			err := json.Unmarshal([]byte(line[2:]), &param)
+			if err != nil {
+				return err
+			}
+			_ = r.engine.RemoveUser(param.Name)
+		case '3':
+			var election Election
+			err := json.Unmarshal([]byte(line[2:]), &election)
+			if err != nil {
+				return err
+			}
+			_ = r.engine.CreateElection(election.Name, election.Groups, election.Choices, election.EndDate)
+		case '4':
+			var vote struct {
+				ElectionName string `json:"election_name"`
+				VoterName    string `json:"voter_name"`
+				Choice       string `json:"choice"`
+			}
+			err := json.Unmarshal([]byte(line[2:]), &vote)
+			if err != nil {
+				return err
+			}
+			_ = r.engine.VoteElection(vote.ElectionName, vote.VoterName, vote.Choice)
+		default:
+			return fmt.Errorf("Invalid log entry: %s", line)
+		}
+	}
+
+	return reader.Err()
 }
 
 func (r *ReplicaLogWrapper) log(t int, payload string) error {
