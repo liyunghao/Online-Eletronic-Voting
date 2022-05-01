@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 type Config struct {
@@ -44,11 +45,7 @@ func (m *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
 	for i := 0; i < len(m.Config.Clusters); i++ {
 		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
-			postBody, _ := json.Marshal(map[string]int{
-				"status": 200,
-			})
-			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post(m.Config.Clusters[i].Ip, "application/json", respBody)
+			resp, err := http.PostForm(m.Config.Clusters[i].Ip, url.Values{})
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
