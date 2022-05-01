@@ -14,7 +14,7 @@ type Manager interface {
 	Initialize(args ...interface{}) error
 
 	// will be invoke in an new go routine
-	Start(notifyStop chan bool) error
+	Start() error
 
 	// Getter
 	GetRoles() bool // Retrieve current roles; return 1 if Primary else 0 
