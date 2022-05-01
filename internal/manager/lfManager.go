@@ -30,8 +30,8 @@ type Logs struct {
 }
 
 type Log struct {
-	Cmd     string  `json:"storage_cmd"`
-	Payload Payload `json:"payload"`
+	Cmd     string `json:"storage_cmd"`
+	Payload string `json:"payload"`
 }
 
 type Payload struct {
@@ -61,7 +61,10 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 	// iterate through nodes to send write sync
 	for i := 0; i < len(m.Config.Clusters); i++ {
 		if m.Config.Clusters[i].Id != 0 { // suppose id 0 is leader
-			postBody, _ := json.Marshal(payload)
+			postBody, _ := json.Marshal(Log{
+				Cmd:     storageCmd,
+				Payload: payload,
+			})
 			respBody := bytes.NewBuffer(postBody)
 			resp, err := http.Post("http://"+m.Config.Clusters[i].Ip, "application/json", respBody)
 			if resp.StatusCode != http.StatusOK {
