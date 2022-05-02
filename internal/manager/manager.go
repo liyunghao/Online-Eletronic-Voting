@@ -23,11 +23,10 @@ type Manager interface {
 	// Active
 	// Leaders Capabilities
 	BroadcastHeartBeat() error
-	WriteSync(storageCmd string, payload string) error
+	WriteSync(storageCmd int, payload string) error
 
 	// Followers Capabilities
-	ElectForLeader() // backups call -> elect new leader
-	CatchUp()        // Primary call ->
+	CatchUp() // Primary call ->
 
 	// Http route handler definition
 	// Follower's Capabilities
