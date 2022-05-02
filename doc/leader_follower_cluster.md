@@ -29,20 +29,16 @@ Also known as: `Primary Backup` , `Passive Replication` , `Master-Slave Pattern`
 
 ```json
 {
-  // Self-node configuration
   "node": {
     "name": "node-1",
     "id": 1
   },
-  // Default configuration. When the node join the cluster, it need to acquire
-  // newest state from leader
   "clusters": [
     {
       "name": "node-1",
       "ip": "192.168.1.10",
       "id": 1
     }
-    // .....
   ]
 }
 ```
@@ -86,9 +82,7 @@ Cluster Status Update - Node Index：
 
 ```json
 {
-  // CMD 的 Index 可以去 Storage 那邊看 Enumeration 的定義
   "storage_cmd": "[CMD_index]",
-  // Payload 格式均已 Storage 那邊定義的 Field Tag 為主，直接 Unmarshal
   "payload": "JOSN 格式的 Payload"
 }
 ```
