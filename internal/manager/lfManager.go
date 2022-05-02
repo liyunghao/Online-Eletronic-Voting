@@ -75,9 +75,7 @@ func (lf *LfManager) Start() error {
 	// Only handle POSTS request
 	router.HandleFunc("/heartbeat", lf.HeartBeatHandler).Methods("POST")
 	router.HandleFunc("/writesync", lf.WriteSyncHandler).Methods("POST")
-	router.HandleFunc("/declare_capability", lf.DeclareLeaderHandler).Methods("POST")
 	router.HandleFunc("/catch_up", lf.CatchUpHandler).Methods("POST")
-	router.HandleFunc("/recv_elect", lf.RecvElectHandler).Methods("POST")
 
 	lf.server = &http.Server{Addr: ":9000", Handler: router} // using self-defined router instead of DefaultServeMux
 	if err := lf.server.ListenAndServe(); err != nil {
@@ -112,14 +110,7 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (lf *LfManager) DeclareLeaderHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}
-
 func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (lf *LfManager) RecvElectHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}

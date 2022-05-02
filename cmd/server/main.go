@@ -12,6 +12,7 @@ import (
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
 	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
+	ma "github.com/liyunghao/Online-Eletronic-Voting/internal/manager"
 	"google.golang.org/grpc"
 )
 
@@ -27,6 +28,10 @@ func main() {
 	// Initialize Storage System (Currently only support memory storage)
 	st.DataStorage = &st.MemoryStorage{}
 	st.DataStorage.Initialize()
+
+	// Initialize Manager
+	ma.ClusterManager = &ma.LfManager{}
+	ma.ClusterManager.Initialize()
 
 	// Initialize JWT
 	jwt.InitJWT()

@@ -33,11 +33,9 @@ type Manager interface {
 	// Follower's Capabilities
 	HeartBeatHandler(w http.ResponseWriter, r *http.Request)
 	WriteSyncHandler(w http.ResponseWriter, r *http.Request)
-	DeclareLeaderHandler(w http.ResponseWriter, r *http.Request)
 
 	// Leader's Capabilities
 	CatchUpHandler(w http.ResponseWriter, r *http.Request)
-	RecvElectHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // TODO:
