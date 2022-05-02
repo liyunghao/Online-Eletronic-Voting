@@ -13,7 +13,22 @@ const (
 	WriteAPI_VoteElection   = iota
 )
 
-// Public Communication Interface
+// CommPayload, transfered between nodes in the control network or used as
+// hardening logs that are stored in the log file.
+type CommRemoveUserPayload struct {
+	Name string `json:"name"`
+}
+
+type CommVotePayload struct {
+	ElectionName string `json:"election_name"`
+	VoterName    string `json:"voter_name"`
+	Choice       string `json:"choice"`
+}
+
+type CommUserPayload User
+type CommElectionPayload Election
+
+// Code Component Interface
 type User struct {
 	Name      string `json:"name"`
 	Group     string `json:"group"`

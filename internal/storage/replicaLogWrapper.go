@@ -15,17 +15,6 @@ const (
 	replicaLogFileName = "replica.log"
 )
 
-// CommPayload
-type removeUserPayload struct {
-	Name string `json:"name"`
-}
-
-type votePayload struct {
-	ElectionName string `json:"election_name"`
-	VoterName    string `json:"voter_name"`
-	Choice       string `json:"choice"`
-}
-
 type ReplicaLogWrapper struct {
 	engine Storage
 
@@ -43,28 +32,28 @@ type ReplicaLogWrapper struct {
 func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string) error {
 	switch cmd {
 	case WriteAPI_CreateUser:
-		var user User
+		var user CommUserPayload
 		err := json.Unmarshal([]byte(payload), &user)
 		if err != nil {
 			return err
 		}
 		_ = r.engine.CreateUser(user.Name, user.Group, user.PublicKey)
 	case WriteAPI_RemoveUser:
-		var param removeUserPayload
+		var param CommRemoveUserPayload
 		err := json.Unmarshal([]byte(payload), &param)
 		if err != nil {
 			return err
 		}
 		_ = r.engine.RemoveUser(param.Name)
 	case WriteAPI_CreateElection:
-		var election Election
+		var election CommElectionPayload
 		err := json.Unmarshal([]byte(payload), &election)
 		if err != nil {
 			return err
 		}
 		_ = r.engine.CreateElection(election.Name, election.Groups, election.Choices, election.EndDate)
 	case WriteAPI_VoteElection:
-		var vote votePayload
+		var vote CommVotePayload
 		err := json.Unmarshal([]byte(payload), &vote)
 		if err != nil {
 			return err
@@ -162,7 +151,7 @@ func (r *ReplicaLogWrapper) RemoveUser(name string) error {
 		return err
 	}
 
-	p, err := json.Marshal(removeUserPayload{
+	p, err := json.Marshal(CommRemoveUserPayload{
 		Name: name,
 	})
 	if err != nil {
@@ -201,7 +190,7 @@ func (r *ReplicaLogWrapper) VoteElection(electionName string, voterName string, 
 		return err
 	}
 
-	p, err := json.Marshal(votePayload{
+	p, err := json.Marshal(CommVotePayload{
 		ElectionName: electionName,
 		VoterName:    voterName,
 		Choice:       choice,
