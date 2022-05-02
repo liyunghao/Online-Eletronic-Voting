@@ -76,7 +76,7 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 func (lf *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
 	for i := 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id != 0 { // suppose id 0 is leader
+		if lf.cluster[i].Id != lf.node.Id { // suppose id 0 is leader
 			resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/hearbeat", "application/json", strings.NewReader(""))
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
@@ -91,7 +91,7 @@ func (lf *LfManager) BroadcastHeartBeat() error {
 func (lf *LfManager) WriteSync(storageCmd int, payload string) error {
 	// iterate through nodes to send write sync
 	for i := 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id != 0 { // suppose id 0 is leader
+		if lf.cluster[i].Id != lf.node.Id { // suppose id 0 is leader
 			postBody, _ := json.Marshal(st.WriteSyncLog{
 				T:     storageCmd,
 				Value: payload,
@@ -109,45 +109,14 @@ func (lf *LfManager) WriteSync(storageCmd int, payload string) error {
 	return nil
 }
 
-func (lf *LfManager) ElectForLeader() error {
-	// iterate through all nodes to check if this is the highest priority node
-	var i int
-	for i = 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id < lf.node.Id {
-			// not the highest priority
-			break
-		}
-	}
-	if i == len(lf.cluster) {
-		// this is the highest priority node to become leader
-		for i = 0; i < len(lf.cluster); i++ {
-			if lf.cluster[i].Id != lf.node.Id {
-				// postBody, _ := json.Marshal(map[string]int{
-				// 	"node_idx": m.Node.Id,
-				// })
-				// respBody := bytes.NewBuffer(postBody)
-				payload_string := "{node_idx: " + strconv.Itoa(lf.node.Id) + "}"
-				postBody := strings.NewReader(payload_string)
-				resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/declare_capability", "application/json", postBody)
-				if resp.StatusCode != http.StatusOK {
-					return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
 func (lf *LfManager) CatchUp() error {
 	log_id := st.DataStorage.(*st.ReplicaLogWrapper).GetNewestLogIndex() // need to know how snapshot id is stored
 
-	idx := -1
 	var ip string
-	for i := 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id < idx || idx < 0 {
-			idx = lf.cluster[i].Id
-			ip = lf.cluster[i].Ip
-		}
+	if lf.node.Id == 1 {
+		ip = lf.cluster[0].Ip
+	} else {
+		ip = lf.cluster[1].IP
 	}
 	// postBody, _ := json.Marshal(map[string]int{
 	// 	"snapshot_id": snapshot_id,
