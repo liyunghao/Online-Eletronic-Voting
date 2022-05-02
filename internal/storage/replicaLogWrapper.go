@@ -15,11 +15,19 @@ const (
 	replicaLogFileName = "replica.log"
 )
 
+type WriteSyncLog struct {
+	T     int    `json:"storage_cmd"`
+	Value string `json:"payload"`
+}
+
 type ReplicaLogWrapper struct {
 	engine Storage
 
 	// This is where log entries are stored
 	logFile *os.File
+
+	// Not very scalable solution .....
+	logs []WriteSyncLog
 }
 
 // 1. Code here is actually not fully-implemented write-ahead-logging
@@ -65,6 +73,17 @@ func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string) error {
 	return nil
 }
 
+func (r *ReplicaLogWrapper) CatchUp(logIdx int) ([]WriteSyncLog, error) {
+	if logIdx == len(r.logs)-1 {
+		return []WriteSyncLog{}, nil
+	}
+	if logIdx >= len(r.logs) {
+		return []WriteSyncLog{}, fmt.Errorf("invalid log index")
+	}
+
+	return r.logs[logIdx+1:], nil
+}
+
 // Storage Interface Implementation
 // First arg should be the pointer to the storage object which being proxy
 func (r *ReplicaLogWrapper) Initialize(args ...interface{}) error {
@@ -107,6 +126,10 @@ func (r *ReplicaLogWrapper) recover() error {
 		if err != nil {
 			return err
 		}
+		r.logs = append(r.logs, WriteSyncLog{
+			T:     logType,
+			Value: line[2:],
+		})
 	}
 
 	return reader.Err()
@@ -117,6 +140,10 @@ func (r *ReplicaLogWrapper) log(t int, payload string) error {
 	entry := strconv.Itoa(t) + "|" + payload + "\n"
 
 	_, err := r.logFile.Write([]byte(entry))
+	r.logs = append(r.logs, WriteSyncLog{
+		T:     t,
+		Value: payload,
+	})
 
 	return err
 }
@@ -138,7 +165,7 @@ func (r *ReplicaLogWrapper) CreateUser(name string, group string, publicKey stri
 		return err
 	}
 
-	return r.log(1, string(p))
+	return r.log(WriteAPI_CreateUser, string(p))
 }
 
 func (r *ReplicaLogWrapper) FetchUser(name string) (User, error) {
@@ -158,7 +185,7 @@ func (r *ReplicaLogWrapper) RemoveUser(name string) error {
 		return err
 	}
 
-	return r.log(2, string(p))
+	return r.log(WriteAPI_RemoveUser, string(p))
 }
 
 func (r *ReplicaLogWrapper) CreateElection(name string, groups []string, choices []string, endDate time.Time) error {
@@ -177,7 +204,7 @@ func (r *ReplicaLogWrapper) CreateElection(name string, groups []string, choices
 		return err
 	}
 
-	return r.log(3, string(p))
+	return r.log(WriteAPI_CreateElection, string(p))
 }
 
 func (r *ReplicaLogWrapper) FetchElection(name string) (Election, error) {
@@ -199,7 +226,7 @@ func (r *ReplicaLogWrapper) VoteElection(electionName string, voterName string, 
 		return nil
 	}
 
-	return r.log(4, string(p))
+	return r.log(WriteAPI_VoteElection, string(p))
 }
 
 func (r *ReplicaLogWrapper) FetchElectionResults(electionName string) (ElectionResults, error) {
