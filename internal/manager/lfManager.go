@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -37,7 +38,7 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	}
 
 	// run http server
-	go lf.Start()
+	go lf.Start(args[1].(int))
 	// handshake?
 
 	// start heartbeat
@@ -69,7 +70,7 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	return nil
 }
 
-func (lf *LfManager) Start() error {
+func (lf *LfManager) Start(controlPort int) error {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Only handle POSTS request
@@ -77,7 +78,7 @@ func (lf *LfManager) Start() error {
 	router.HandleFunc("/writesync", lf.WriteSyncHandler).Methods("POST")
 	router.HandleFunc("/catch_up", lf.CatchUpHandler).Methods("POST")
 
-	lf.server = &http.Server{Addr: ":9000", Handler: router} // using self-defined router instead of DefaultServeMux
+	lf.server = &http.Server{Addr: ":" + strconv.Itoa(controlPort), Handler: router} // using self-defined router instead of DefaultServeMux
 	if err := lf.server.ListenAndServe(); err != nil {
 		log.Fatal("Http Server start error")
 	}
@@ -113,4 +114,3 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
-
