@@ -29,20 +29,16 @@ Also known as: `Primary Backup` , `Passive Replication` , `Master-Slave Pattern`
 
 ```json
 {
-  // Self-node configuration
   "node": {
     "name": "node-1",
     "id": 1
   },
-  // Default configuration. When the node join the cluster, it need to acquire
-  // newest state from leader
   "clusters": [
     {
       "name": "node-1",
       "ip": "192.168.1.10",
       "id": 1
     }
-    // .....
   ]
 }
 ```
@@ -86,8 +82,7 @@ Cluster Status Update - Node Index：
 
 ```json
 {
-  "storage_cmd": "CreateUser",
-  // Payload 格式均已 Storage 那邊定義的 Field Tag 為主，直接 Unmarshal
+  "storage_cmd": "[CMD_index]",
   "payload": "JSON 格式的 Payload"
 }
 ```
@@ -132,7 +127,7 @@ Priority 越高。演算法如下：
 ### Catch up process
 
 - Route: `/catch_up`
-- Payload: `{ "snapshot_id": 1 }`
+- Payload: `{ "log_id": 1 }`
 - Response: `{ logs: [ [很多 WriteSync 的 Log] ] }`
 - Only leader will open this route
 
