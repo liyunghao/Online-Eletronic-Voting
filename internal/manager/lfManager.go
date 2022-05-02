@@ -35,11 +35,6 @@ type LogString struct {
 	log string
 }
 
-type Log struct {
-	Cmd     string `json:"storage_cmd"`
-	Payload string `json:"payload"`
-}
-
 type Payload struct {
 }
 
@@ -63,19 +58,19 @@ func (m *LfManager) BroadcastHeartBeat() error {
 	return nil
 }
 
-func (m *LfManager) WriteSync(storageCmd string, payload string) error {
+func (m *LfManager) WriteSync(storageCmd int, payload string) error {
 	// iterate through nodes to send write sync
 	for i := 0; i < len(m.Clusters); i++ {
 		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
-			// postBody, _ := json.Marshal(Log{
-			// 	Cmd:     storageCmd,
-			// 	Payload: payload,
-			// })
+			postBody, _ := json.Marshal(WriteSyncLog{
+				T:     storageCmd,
+				Value: payload,
+			})
 			// respBody := bytes.NewBuffer(postBody)
 
-			payload_string := "{storage_cmd: " + storageCmd + ", payload: " + payload + ",}"
-			postBody := strings.NewReader(payload_string)
-			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/writesync", "application/json", postBody)
+			// payload_string := "{storage_cmd: " + storageCmd + ", payload: " + payload + ",}"
+			// postBody := strings.NewReader(payload_string)
+			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/writesync", "application/json", strings.NewReader(string(postBody)))
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
