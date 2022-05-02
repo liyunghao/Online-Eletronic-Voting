@@ -23,10 +23,11 @@ type replicas struct {
 }
 
 type LfManager struct {
-	replicas      // record other replicas' info for broadcast?
-	leader   bool // if this node is currently leader
-	primary  bool // if this node is primary node
-	server   *http.Server
+	controlPort int
+	replicas         // record other replicas' info for broadcast?
+	leader      bool // if this node is currently leader
+	primary     bool // if this node is primary node
+	server      *http.Server
 }
 
 func (lf *LfManager) Initialize(args ...interface{}) error {
@@ -40,6 +41,7 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	}
 
 	// run http server
+	lf.controlPort = args[1].(int)
 	go lf.Start()
 	// handshake?
 
@@ -75,7 +77,7 @@ func (lf *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
 	for i := 0; i < len(lf.cluster); i++ {
 		if lf.cluster[i].Id != 0 { // suppose id 0 is leader
-			resp, err := http.Post("http://"+lf.cluster[i].Ip+"/hearbeat", "application/json", strings.NewReader(""))
+			resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/hearbeat", "application/json", strings.NewReader(""))
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
@@ -98,7 +100,7 @@ func (lf *LfManager) WriteSync(storageCmd int, payload string) error {
 
 			// payload_string := "{storage_cmd: " + storageCmd + ", payload: " + payload + ",}"
 			// postBody := strings.NewReader(payload_string)
-			resp, err := http.Post("http://"+lf.cluster[i].Ip+"/writesync", "application/json", strings.NewReader(string(postBody)))
+			resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/writesync", "application/json", strings.NewReader(string(postBody)))
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
@@ -124,9 +126,9 @@ func (lf *LfManager) ElectForLeader() error {
 				// 	"node_idx": m.Node.Id,
 				// })
 				// respBody := bytes.NewBuffer(postBody)
-				payload_string := "{node_idx: " + strconv.Itoa(lf.node.Id) + ",}"
+				payload_string := "{node_idx: " + strconv.Itoa(lf.node.Id) + "}"
 				postBody := strings.NewReader(payload_string)
-				resp, err := http.Post("http://"+lf.cluster[i].Ip+"/declare_capability", "application/json", postBody)
+				resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/declare_capability", "application/json", postBody)
 				if resp.StatusCode != http.StatusOK {
 					return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 				}
@@ -136,24 +138,24 @@ func (lf *LfManager) ElectForLeader() error {
 	return nil
 }
 
-func (m *LfManager) CatchUp() error {
-	snapshot_id := 1 // need to know how snapshot id is stored
+func (lf *LfManager) CatchUp() error {
+	log_id := st.DataStorage.(*st.ReplicaLogWrapper).GetNewestLogIndex() // need to know how snapshot id is stored
 
 	idx := -1
 	var ip string
-	for i := 0; i < len(m.cluster); i++ {
-		if m.cluster[i].Id < idx || idx < 0 {
-			idx = m.cluster[i].Id
-			ip = m.cluster[i].Ip
+	for i := 0; i < len(lf.cluster); i++ {
+		if lf.cluster[i].Id < idx || idx < 0 {
+			idx = lf.cluster[i].Id
+			ip = lf.cluster[i].Ip
 		}
 	}
 	// postBody, _ := json.Marshal(map[string]int{
 	// 	"snapshot_id": snapshot_id,
 	// })
 	// resBody := bytes.NewBuffer(postBody)
-	payload_string := "{snapshot_id: " + strconv.Itoa(snapshot_id) + ",}"
+	payload_string := "{log_id: " + strconv.Itoa(log_id) + "}"
 	postBody := strings.NewReader(payload_string)
-	resp, err := http.Post("http://"+ip+"/catch_up", "application/json", postBody)
+	resp, err := http.Post("http://"+ip+strconv.Itoa(lf.controlPort)+"/catch_up", "application/json", postBody)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 	}
