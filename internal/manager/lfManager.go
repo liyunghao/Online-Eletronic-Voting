@@ -166,7 +166,7 @@ func (m *LfManager) CatchUp() error {
 
 	for i := 0; i < len(logs); i++ {
 		// store logs.Logs[i].log into replicaLogWrapper
-		// m.replicaLogWrapper.logFile.Write([]byte(logs.Logs[i].log))
+		st.DataStorage.(*st.ReplicaLogWrapper).SynctoStorage(logs[i].T, logs[i].Value, true)
 	}
 	return nil
 }
