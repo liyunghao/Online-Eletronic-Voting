@@ -6,6 +6,7 @@ VERSION=0.0.1
 
 # Artifacts
 BUILD_ARTIFACTS=client server grpcConn
+STORAGE_ARTIFACTS=database.db replica.log
 
 .PHONY: build
 build: build-client build-server
@@ -34,4 +35,4 @@ compile-proto:
 
 .PHONY: clean
 clean:
-	rm -rf ${BUILD_ARTIFACTS}
+	rm -rf ${BUILD_ARTIFACTS} ${STORAGE_ARTIFACTS}
