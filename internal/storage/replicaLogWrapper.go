@@ -37,7 +37,7 @@ type ReplicaLogWrapper struct {
 // mode, which will remove the log file instead of recovering from it.
 
 // Control Interface
-func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string) error {
+func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string, toWriteLog bool) error {
 	switch cmd {
 	case WriteAPI_CreateUser:
 		var user CommUserPayload
@@ -70,6 +70,11 @@ func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string) error {
 	default:
 		return fmt.Errorf("Invalid entry: %d -> %s", cmd, payload)
 	}
+
+	if toWriteLog {
+		_ = r.log(cmd, payload)
+	}
+
 	return nil
 }
 
@@ -126,7 +131,7 @@ func (r *ReplicaLogWrapper) recover() error {
 		if err != nil {
 			return err
 		}
-		err = r.SynctoStorage(logType, line[2:])
+		err = r.SynctoStorage(logType, line[2:], false)
 		if err != nil {
 			return err
 		}

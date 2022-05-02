@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 )
 
 type replicas struct {
@@ -69,6 +70,47 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 	return nil
 }
 
+func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]interface{})
+	json.Unmarshal(body, &data)
+	cmdData, _ := json.Marshal(data["storage_cmd"])
+	payloadData, _ := json.Marshal(data["payload"])
+
+	var cmd int
+	json.Unmarshal(cmdData, &cmd)
+	var payload string
+	json.Unmarshal(payloadData, &payload)
+
+	if err := st.DataStorage.(*st.ReplicaLogWrapper).SynctoStorage(cmd, payload, true); err == nil {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		// error status
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]int)
+	json.Unmarshal(body, &data)
+	logIdData, _ := json.Marshal(data["log_id"])
+	var logId int
+	json.Unmarshal(logIdData, &logId)
+	if logs, err := st.DataStorage.(*st.ReplicaLogWrapper).CatchUp(logId); err == nil {
+		w.Header().Set("Content-Type", "application/json")
+		data, _ := json.Marshal(logs)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(data)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 func (lf *LfManager) Start() error {
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -99,18 +141,4 @@ func (lf *LfManager) ParseConfig(filename string) (Node, []Cluster) {
 	json.Unmarshal(bytes, &tmp)
 
 	return tmp.node, tmp.cluster
-
 }
-
-func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}
-
-func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}
-
-func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}
-

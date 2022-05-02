@@ -10,6 +10,11 @@ require (
 )
 
 require (
+	github.com/golang/protobuf v1.5.2 // indirect
+	golang.org/x/text v0.3.7 // indirect
+)
+
+require (
 	github.com/gorilla/mux v1.8.0
 	golang.org/x/net v0.0.0-20220421235706-1d1ef9303861 // indirect
 	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
