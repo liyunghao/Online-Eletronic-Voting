@@ -5,7 +5,30 @@ import "time"
 // Global Storage Variable
 var DataStorage Storage
 
-// Public Communication Interface
+// Public Write API Definition
+const (
+	WriteAPI_CreateUser     = iota
+	WriteAPI_RemoveUser     = iota
+	WriteAPI_CreateElection = iota
+	WriteAPI_VoteElection   = iota
+)
+
+// CommPayload, transfered between nodes in the control network or used as
+// hardening logs that are stored in the log file.
+type CommRemoveUserPayload struct {
+	Name string `json:"name"`
+}
+
+type CommVotePayload struct {
+	ElectionName string `json:"election_name"`
+	VoterName    string `json:"voter_name"`
+	Choice       string `json:"choice"`
+}
+
+type CommUserPayload User
+type CommElectionPayload Election
+
+// Code Component Interface
 type User struct {
 	Name      string `json:"name"`
 	Group     string `json:"group"`

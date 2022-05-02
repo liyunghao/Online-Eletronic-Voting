@@ -12,6 +12,7 @@ import (
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
 	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
+	ma "github.com/liyunghao/Online-Eletronic-Voting/internal/manager"
 	"google.golang.org/grpc"
 )
 
@@ -25,8 +26,23 @@ func main() {
 	flag.Parse()
 
 	// Initialize Storage System (Currently only support memory storage)
-	st.DataStorage = &st.MemoryStorage{}
-	st.DataStorage.Initialize()
+	memStore := &st.MemoryStorage{}
+	err := memStore.Initialize()
+
+	if err != nil {
+		log.Fatalf("Failed to initialize storage system at MemStore: %v", err)
+	}
+
+	// Replica Hardening Logs
+	st.DataStorage = &st.ReplicaLogWrapper{}
+	err = st.DataStorage.Initialize(memStore, false)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage system at ReplicaLogWrapper: %v", err)
+	}
+
+	// Initialize Manager
+	ma.ClusterManager = &ma.LfManager{}
+	ma.ClusterManager.Initialize()
 
 	// Initialize JWT
 	jwt.InitJWT()
