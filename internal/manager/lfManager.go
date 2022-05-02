@@ -1,12 +1,12 @@
 package manager
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+	"strconv"
+	"strings"
 
 	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 )
@@ -52,7 +52,7 @@ func (m *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
 	for i := 0; i < len(m.Clusters); i++ {
 		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
-			resp, err := http.PostForm("http://"+m.Clusters[i].Ip, url.Values{})
+			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/hearbeat", "application/json", strings.NewReader(""))
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -68,12 +68,15 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 	// iterate through nodes to send write sync
 	for i := 0; i < len(m.Clusters); i++ {
 		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
-			postBody, _ := json.Marshal(Log{
-				Cmd:     storageCmd,
-				Payload: payload,
-			})
-			respBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post("http://"+m.Clusters[i].Ip, "application/json", respBody)
+			// postBody, _ := json.Marshal(Log{
+			// 	Cmd:     storageCmd,
+			// 	Payload: payload,
+			// })
+			// respBody := bytes.NewBuffer(postBody)
+
+			payload_string := "{storage_cmd: " + storageCmd + ", payload: " + payload + ",}"
+			postBody := strings.NewReader(payload_string)
+			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/writesync", "application/json", postBody)
 			if resp.StatusCode != http.StatusOK {
 				fmt.Println(err)
 				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -97,11 +100,13 @@ func (m *LfManager) ElectForLeader() error {
 		// this is the highest priority node to become leader
 		for i = 0; i < len(m.Clusters); i++ {
 			if m.Clusters[i].Id != m.Config.Node.Id {
-				postBody, _ := json.Marshal(map[string]int{
-					"node_idx": m.Node.Id,
-				})
-				respBody := bytes.NewBuffer(postBody)
-				resp, err := http.Post("http://"+m.Clusters[i].Ip, "application/json", respBody)
+				// postBody, _ := json.Marshal(map[string]int{
+				// 	"node_idx": m.Node.Id,
+				// })
+				// respBody := bytes.NewBuffer(postBody)
+				payload_string := "{node_idx: " + strconv.Itoa(m.Node.Id) + ",}"
+				postBody := strings.NewReader(payload_string)
+				resp, err := http.Post("http://"+m.Clusters[i].Ip+"/declare_capability", "application/json", postBody)
 				if resp.StatusCode != http.StatusOK {
 					fmt.Println(err)
 					return fmt.Errorf("Failed with status code %d", resp.StatusCode)
@@ -123,11 +128,13 @@ func (m *LfManager) CatchUp() error {
 			ip = m.Clusters[i].Ip
 		}
 	}
-	postBody, _ := json.Marshal(map[string]int{
-		"snapshot_id": snapshot_id,
-	})
-	resBody := bytes.NewBuffer(postBody)
-	resp, err := http.Post("http://"+ip, "application/json", resBody)
+	// postBody, _ := json.Marshal(map[string]int{
+	// 	"snapshot_id": snapshot_id,
+	// })
+	// resBody := bytes.NewBuffer(postBody)
+	payload_string := "{snapshot_id: " + strconv.Itoa(snapshot_id) + ",}"
+	postBody := strings.NewReader(payload_string)
+	resp, err := http.Post("http://"+ip+"/catch_up", "application/json", postBody)
 	if resp.StatusCode != http.StatusOK {
 		fmt.Println(err)
 		return fmt.Errorf("Failed with status code %d:", resp.StatusCode)
