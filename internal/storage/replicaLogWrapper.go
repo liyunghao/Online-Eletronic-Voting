@@ -84,6 +84,10 @@ func (r *ReplicaLogWrapper) CatchUp(logIdx int) ([]WriteSyncLog, error) {
 	return r.logs[logIdx+1:], nil
 }
 
+func (r *ReplicaLogWrapper) GetNewestLogIndex() int {
+	return len(r.logs) - 1
+}
+
 // Storage Interface Implementation
 // First arg should be the pointer to the storage object which being proxy
 func (r *ReplicaLogWrapper) Initialize(args ...interface{}) error {

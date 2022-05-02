@@ -125,7 +125,7 @@ Priority 越高。演算法如下：
 ### Catch up process
 
 - Route: `/catch_up`
-- Payload: `{ "snapshot_id": 1 }`
+- Payload: `{ "log_id": 1 }`
 - Response: `{ logs: [ [很多 WriteSync 的 Log] ] }`
 - Only leader will open this route
 
