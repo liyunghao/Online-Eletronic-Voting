@@ -15,6 +15,17 @@ const (
 	replicaLogFileName = "replica.log"
 )
 
+// CommPayload
+type removeUserPayload struct {
+	Name string `json:"name"`
+}
+
+type votePayload struct {
+	ElectionName string `json:"election_name"`
+	VoterName    string `json:"voter_name"`
+	Choice       string `json:"choice"`
+}
+
 type ReplicaLogWrapper struct {
 	engine Storage
 
@@ -28,6 +39,44 @@ type ReplicaLogWrapper struct {
 // 2. Logging here doesn't support rotation. But it does support start in clean
 // mode, which will remove the log file instead of recovering from it.
 
+// Control Interface
+func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string) error {
+	switch cmd {
+	case WriteAPI_CreateUser:
+		var user User
+		err := json.Unmarshal([]byte(payload), &user)
+		if err != nil {
+			return err
+		}
+		_ = r.engine.CreateUser(user.Name, user.Group, user.PublicKey)
+	case WriteAPI_RemoveUser:
+		var param removeUserPayload
+		err := json.Unmarshal([]byte(payload), &param)
+		if err != nil {
+			return err
+		}
+		_ = r.engine.RemoveUser(param.Name)
+	case WriteAPI_CreateElection:
+		var election Election
+		err := json.Unmarshal([]byte(payload), &election)
+		if err != nil {
+			return err
+		}
+		_ = r.engine.CreateElection(election.Name, election.Groups, election.Choices, election.EndDate)
+	case WriteAPI_VoteElection:
+		var vote votePayload
+		err := json.Unmarshal([]byte(payload), &vote)
+		if err != nil {
+			return err
+		}
+		_ = r.engine.VoteElection(vote.ElectionName, vote.VoterName, vote.Choice)
+	default:
+		return fmt.Errorf("Invalid entry: %d -> %s", cmd, payload)
+	}
+	return nil
+}
+
+// Storage Interface Implementation
 // First arg should be the pointer to the storage object which being proxy
 func (r *ReplicaLogWrapper) Initialize(args ...interface{}) error {
 	var err error
@@ -60,45 +109,14 @@ func (r *ReplicaLogWrapper) recover() error {
 
 	for reader.Scan() {
 		line := reader.Text()
-
 		// Parse
-		switch line[0] {
-		case '1':
-			var user User
-			err := json.Unmarshal([]byte(line[2:]), &user)
-			if err != nil {
-				return err
-			}
-			_ = r.engine.CreateUser(user.Name, user.Group, user.PublicKey)
-		case '2':
-			var param struct {
-				Name string `json:"name"`
-			}
-			err := json.Unmarshal([]byte(line[2:]), &param)
-			if err != nil {
-				return err
-			}
-			_ = r.engine.RemoveUser(param.Name)
-		case '3':
-			var election Election
-			err := json.Unmarshal([]byte(line[2:]), &election)
-			if err != nil {
-				return err
-			}
-			_ = r.engine.CreateElection(election.Name, election.Groups, election.Choices, election.EndDate)
-		case '4':
-			var vote struct {
-				ElectionName string `json:"election_name"`
-				VoterName    string `json:"voter_name"`
-				Choice       string `json:"choice"`
-			}
-			err := json.Unmarshal([]byte(line[2:]), &vote)
-			if err != nil {
-				return err
-			}
-			_ = r.engine.VoteElection(vote.ElectionName, vote.VoterName, vote.Choice)
-		default:
-			return fmt.Errorf("Invalid log entry: %s", line)
+		logType, err := strconv.Atoi(line[:1])
+		if err != nil {
+			return err
+		}
+		err = r.SynctoStorage(logType, line[2:])
+		if err != nil {
+			return err
 		}
 	}
 
@@ -144,9 +162,7 @@ func (r *ReplicaLogWrapper) RemoveUser(name string) error {
 		return err
 	}
 
-	p, err := json.Marshal(struct {
-		Name string `json:"name"`
-	}{
+	p, err := json.Marshal(removeUserPayload{
 		Name: name,
 	})
 	if err != nil {
@@ -185,11 +201,7 @@ func (r *ReplicaLogWrapper) VoteElection(electionName string, voterName string, 
 		return err
 	}
 
-	p, err := json.Marshal(struct {
-		ElectionName string `json:"election_name"`
-		VoterName    string `json:"voter_name"`
-		Choice       string `json:"choice"`
-	}{
+	p, err := json.Marshal(votePayload{
 		ElectionName: electionName,
 		VoterName:    voterName,
 		Choice:       choice,

@@ -5,6 +5,14 @@ import "time"
 // Global Storage Variable
 var DataStorage Storage
 
+// Public Write API Definition
+const (
+	WriteAPI_CreateUser     = iota
+	WriteAPI_RemoveUser     = iota
+	WriteAPI_CreateElection = iota
+	WriteAPI_VoteElection   = iota
+)
+
 // Public Communication Interface
 type User struct {
 	Name      string `json:"name"`

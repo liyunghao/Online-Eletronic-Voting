@@ -86,7 +86,8 @@ Cluster Status Update - Node Index：
 
 ```json
 {
-  "storage_cmd": "CreateUser",
+  // CMD 的 Index 可以去 Storage 那邊看 Enumeration 的定義
+  "storage_cmd": "[CMD_index]",
   // Payload 格式均已 Storage 那邊定義的 Field Tag 為主，直接 Unmarshal
   "payload": "JOSN 格式的 Payload"
 }
