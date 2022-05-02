@@ -69,7 +69,7 @@ Cluster Status Update - Node Index：
 - Route: `/hearbeat`
 - Return: nothing, `code: 200`
 
-每隔 `30 秒` Leader 會去 Poll 每個 Follower，確認自己還活著。
+每隔 `5 秒` Leader 會去 Poll 每個 Follower，確認自己還活著。
 
 ### Write Sync
 
@@ -94,7 +94,7 @@ Implementation 上的困難。
 
 ### Declared Dead
 
-當 Follower 在收到上一個 Heartbeat 後的 `1 min` 內沒有收到上一個 Message 則開始進行
+當 Follower 在收到上一個 Heartbeat 後的 `20 秒` 內沒有收到上一個 Message 則開始進行
 [Leader 產生機制](#new-leader)
 
 ### New Leader

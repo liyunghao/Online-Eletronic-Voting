@@ -19,3 +19,6 @@ scripts/libsodium_gen/main
 
 # Replica Logs File
 replica.log
+
+# Deployment
+/deployment

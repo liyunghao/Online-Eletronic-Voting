@@ -1,0 +1,21 @@
+{
+  "node": {
+    "name": "backup",
+    "id": 2,
+    "control_port": 9001
+  },
+  "clusters": [
+    {
+      "name": "primary",
+      "ip": "primary",
+      "id": 1,
+      "control_port": 9000
+    },
+    {
+      "name": "backup",
+      "ip": "backup",
+      "id": 2,
+      "control_port": 9001
+    }
+  ]
+}

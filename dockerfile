@@ -4,6 +4,7 @@ FROM golang:1.18.0-buster
 LABEL name="online-electronic-voting-machine"
 
 EXPOSE 8080
+EXPOSE 9000
 
 # Update container image and setup sqlite, build-essential, and libsodium, python3
 RUN apt-get update && apt-get install -y sqlite3 build-essential libsodium-dev python3

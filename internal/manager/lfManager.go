@@ -1,14 +1,11 @@
 package manager
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"time"
@@ -18,66 +15,68 @@ import (
 )
 
 type replicas struct {
-	node    Node
-	cluster []Cluster
+	Node    Node      `json:"node"`
+	Cluster []Cluster `json:"clusters"`
 }
 
 type LfManager struct {
-	controlPort int
-	replicas         // record other replicas' info for broadcast?
-	leader      bool // if this node is currently leader
-	primary     bool // if this node is primary node
-	server      *http.Server
+	replicas               // record other replicas' info for broadcast?
+	peerPort               int
+	leader                 bool // if this node is currently leader
+	primary                bool // if this node is primary node
+	Server                 *http.Server
+	CheckPrimaryAliveTimer *time.Timer
 }
 
 func (lf *LfManager) Initialize(args ...interface{}) error {
 
-	lf.node, lf.cluster = lf.ParseConfig(args[0].(string)) // args[0] -> config filename
-
+	lf.Node, lf.Cluster = lf.ParseConfig(args[0].(string)) // args[0] -> config filename
 	// primary node's id is 1 as default
-	if lf.node.Id == 1 {
+	lf.primary = false
+	lf.leader = false
+	lf.peerPort = lf.Cluster[0].ControlPort
+	if lf.Node.Id == 1 {
 		lf.primary = true
 		lf.leader = true
+		lf.peerPort = lf.Cluster[1].ControlPort
 	}
 
-	// run http server
-	lf.controlPort = args[1].(int)
-	go lf.Start()
-	// handshake?
-
 	// start heartbeat
-	ticker := time.NewTicker(30 * time.Second) // send heartbeat per 30sec
-	quit := make(chan struct{})                // backdoor to end this func by close(quit)
+	ticker := time.NewTicker(5 * time.Second) // send heartbeat per 30sec
+	lf.CheckPrimaryAliveTimer = time.AfterFunc(20*time.Second, func() {})
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				//lf.BroadcastHeartBeat()
-			case <-quit:
-				ticker.Stop()
-				return
+				if lf.leader {
+					lf.BroadcastHeartBeat()
+				}
 			}
 		}
 	}()
 
-	stop := make(chan os.Signal)
-	signal.Notify(stop, os.Interrupt)
+	// stop := make(chan os.Signal, 1)
+	// signal.Notify(stop, os.Interrupt)
 
-	<-stop
+	// <-stop
 
-	ctx, shutdown := context.WithTimeout(context.Background(), 3*time.Second)
-	defer shutdown()
-	if err := lf.server.Shutdown(ctx); err != nil {
-		log.Fatal("Http Server shutdown error")
-	}
+	lf.CatchUp()
+
 	return nil
 }
 
 func (lf *LfManager) BroadcastHeartBeat() error {
 	// iterate through nodes to send heartbeat
-	for i := 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id != lf.node.Id { // suppose id 0 is leader
-			resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/hearbeat", "application/json", strings.NewReader(""))
+	client := http.Client{
+		Timeout: time.Second * 2,
+	}
+
+	for i := 0; i < len(lf.Cluster); i++ {
+		if lf.Cluster[i].Id != lf.Node.Id { // suppose id 0 is leader
+			resp, err := client.Post("http://"+lf.Cluster[i].Ip+":"+strconv.Itoa(lf.peerPort)+"/heartbeat", "application/json", strings.NewReader(""))
+			if err != nil {
+				return err
+			}
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
@@ -90,17 +89,16 @@ func (lf *LfManager) BroadcastHeartBeat() error {
 
 func (lf *LfManager) WriteSync(storageCmd int, payload string) error {
 	// iterate through nodes to send write sync
-	for i := 0; i < len(lf.cluster); i++ {
-		if lf.cluster[i].Id != lf.node.Id { // suppose id 0 is leader
+	for i := 0; i < len(lf.Cluster); i++ {
+		if lf.Cluster[i].Id != lf.Node.Id { // suppose id 0 is leader
 			postBody, _ := json.Marshal(st.WriteSyncLog{
 				T:     storageCmd,
 				Value: payload,
 			})
-			// respBody := bytes.NewBuffer(postBody)
-
-			// payload_string := "{storage_cmd: " + storageCmd + ", payload: " + payload + ",}"
-			// postBody := strings.NewReader(payload_string)
-			resp, err := http.Post("http://"+lf.cluster[i].Ip+strconv.Itoa(lf.controlPort)+"/writesync", "application/json", strings.NewReader(string(postBody)))
+			resp, err := http.Post("http://"+lf.Cluster[i].Ip+":"+strconv.Itoa(lf.peerPort)+"/writesync", "application/json", strings.NewReader(string(postBody)))
+			if err != nil {
+				return err
+			}
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
@@ -113,23 +111,26 @@ func (lf *LfManager) CatchUp() error {
 	log_id := st.DataStorage.(*st.ReplicaLogWrapper).GetNewestLogIndex() // need to know how snapshot id is stored
 
 	var ip string
-	if lf.node.Id == 1 {
-		ip = lf.cluster[0].Ip
+	if lf.Node.Id == 1 {
+		ip = lf.Cluster[1].Ip
 	} else {
-		ip = lf.cluster[1].IP
+		ip = lf.Cluster[0].Ip
 	}
 	// postBody, _ := json.Marshal(map[string]int{
 	// 	"snapshot_id": snapshot_id,
 	// })
 	// resBody := bytes.NewBuffer(postBody)
-	payload_string := "{log_id: " + strconv.Itoa(log_id) + "}"
+	payload_string := "{\"log_id\": " + strconv.Itoa(log_id) + "}"
 	postBody := strings.NewReader(payload_string)
-	resp, err := http.Post("http://"+ip+strconv.Itoa(lf.controlPort)+"/catch_up", "application/json", postBody)
+	resp, err := http.Post("http://"+ip+":"+strconv.Itoa(lf.peerPort)+"/catch_up", "application/json", postBody)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	var logs []st.WriteSyncLog
@@ -143,22 +144,19 @@ func (lf *LfManager) CatchUp() error {
 }
 
 func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
+	lf.CheckPrimaryAliveTimer.Stop()
+	lf.CheckPrimaryAliveTimer = time.AfterFunc(20*time.Second, func() {
+		lf.leader = true
+	})
 	w.WriteHeader(http.StatusOK)
 }
 
 func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(r.Body)
-	data := make(map[string]interface{})
-	json.Unmarshal(body, &data)
-	cmdData, _ := json.Marshal(data["storage_cmd"])
-	payloadData, _ := json.Marshal(data["payload"])
+	var log st.WriteSyncLog
+	json.Unmarshal(body, &log)
 
-	var cmd int
-	json.Unmarshal(cmdData, &cmd)
-	var payload string
-	json.Unmarshal(payloadData, &payload)
-
-	if err := st.DataStorage.(*st.ReplicaLogWrapper).SynctoStorage(cmd, payload, true); err == nil {
+	if err := st.DataStorage.(*st.ReplicaLogWrapper).SynctoStorage(log.T, log.Value, true); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		// error status
@@ -167,23 +165,25 @@ func (lf *LfManager) WriteSyncHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (lf *LfManager) CatchUpHandler(w http.ResponseWriter, r *http.Request) {
+	if lf.primary == false {
+		lf.leader = false
+	}
 	body, _ := ioutil.ReadAll(r.Body)
-	data := make(map[string]int)
-	json.Unmarshal(body, &data)
-	logIdData, _ := json.Marshal(data["log_id"])
-	var logId int
-	json.Unmarshal(logIdData, &logId)
-	if logs, err := st.DataStorage.(*st.ReplicaLogWrapper).CatchUp(logId); err == nil {
+	var data struct {
+		Log_id int `json:"log_id"`
+	}
+	_ = json.Unmarshal(body, &data)
+	if logs, err := st.DataStorage.(*st.ReplicaLogWrapper).CatchUp(data.Log_id); err == nil {
 		w.Header().Set("Content-Type", "application/json")
 		data, _ := json.Marshal(logs)
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(data)
+		w.Write(data)
+		// w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
-func (lf *LfManager) Start() error {
+func (lf *LfManager) Start() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Only handle POSTS request
@@ -191,15 +191,12 @@ func (lf *LfManager) Start() error {
 	router.HandleFunc("/writesync", lf.WriteSyncHandler).Methods("POST")
 	router.HandleFunc("/catch_up", lf.CatchUpHandler).Methods("POST")
 
-	lf.server = &http.Server{Addr: ":9000", Handler: router} // using self-defined router instead of DefaultServeMux
-	if err := lf.server.ListenAndServe(); err != nil {
-		log.Fatal("Http Server start error")
-	}
-	return nil
+	lf.Server = &http.Server{Addr: ":" + strconv.Itoa(lf.Node.ControlPort), Handler: router} // using self-defined router instead of DefaultServeMux
+	_ = lf.Server.ListenAndServe()
 }
 
 func (lf *LfManager) GetRoles() bool {
-	return lf.primary
+	return lf.leader
 }
 
 func (lf *LfManager) ParseConfig(filename string) (Node, []Cluster) {
@@ -210,7 +207,7 @@ func (lf *LfManager) ParseConfig(filename string) (Node, []Cluster) {
 	defer config.Close()
 	var tmp replicas
 	bytes, _ := ioutil.ReadAll(config)
-	json.Unmarshal(bytes, &tmp)
+	_ = json.Unmarshal(bytes, &tmp)
 
-	return tmp.node, tmp.cluster
+	return tmp.Node, tmp.Cluster
 }

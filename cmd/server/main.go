@@ -2,28 +2,27 @@ package main
 
 import (
 	"bufio"
-	"flag"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strconv"
 
+	ma "github.com/liyunghao/Online-Eletronic-Voting/internal/manager"
 	jwt "github.com/liyunghao/Online-Eletronic-Voting/internal/server/jwt"
 	srv "github.com/liyunghao/Online-Eletronic-Voting/internal/server/services"
 	st "github.com/liyunghao/Online-Eletronic-Voting/internal/storage"
 	pb "github.com/liyunghao/Online-Eletronic-Voting/internal/voting"
-	ma "github.com/liyunghao/Online-Eletronic-Voting/internal/manager"
 	"google.golang.org/grpc"
 )
 
-var (
-	port           = flag.Int("port", 8080, "Specify which port should gRPC server listen on")
-	storage_type   = flag.String("storage", "memory", "Specify which storage type should be used")
-	sqlite3db_name = flag.String("sqlite3db", "./database.db", "Specify which sqlite3 database should be used")
-)
-
 func main() {
-	flag.Parse()
+	var port int
+	var configName string
+
+	parseEnv(&port, &configName)
 
 	// Initialize Storage System (Currently only support memory storage)
 	memStore := &st.MemoryStorage{}
@@ -42,12 +41,17 @@ func main() {
 
 	// Initialize Manager
 	ma.ClusterManager = &ma.LfManager{}
-	ma.ClusterManager.Initialize()
+	ma.ClusterManager.Initialize(configName)
+	go ma.ClusterManager.Start()
+	defer func() {
+		_ = ma.ClusterManager.(*ma.LfManager).Server.Shutdown(context.Background())
+		ma.ClusterManager.(*ma.LfManager).CheckPrimaryAliveTimer.Stop()
+	}()
 
 	// Initialize JWT
 	jwt.InitJWT()
 
-	tcp_listner, err := net.ListenTCP("tcp", &net.TCPAddr{IP: nil, Port: *port})
+	tcp_listner, err := net.ListenTCP("tcp", &net.TCPAddr{IP: nil, Port: port})
 	if err != nil {
 		log.Fatalf("Create TCP listner failed. Something WRONG: %v\n", err)
 	}
@@ -64,7 +68,7 @@ func main() {
 
 	// Start Server
 	go func() {
-		log.Printf("gRPC server start to listen at %d\n", *port)
+		log.Printf("gRPC server start to listen at %d\n", port)
 		err = grpcServer.Serve(tcp_listner)
 		if err != nil {
 			log.Fatalf("Create TCP listner failed. Something WRONG: %v\n", err)
@@ -76,6 +80,18 @@ func main() {
 	}()
 
 	<-notifyStop
+}
+
+func parseEnv(port *int, configName *string) {
+	*port = 8080
+	if os.Getenv("OES_PORT") != "" {
+		*port, _ = strconv.Atoi(os.Getenv("OES_PORT"))
+	}
+
+	*configName = "config.json"
+	if os.Getenv("OES_CONFIG_NAME") != "" {
+		*configName = os.Getenv("OES_CONFIG_NAME")
+	}
 }
 
 func cli(notifyStop chan bool) {
@@ -104,11 +120,21 @@ func cli(notifyStop chan bool) {
 			public_key := stdin_scanner.Text()
 
 			// Register voter
-			err := st.DataStorage.CreateUser(name, group, public_key)
-			if err != nil {
-				fmt.Printf("Register failed. Something WRONG: %v\n", err)
-			} else {
-				fmt.Printf("Register success\n")
+			if ma.ClusterManager.GetRoles() {
+				err := st.DataStorage.CreateUser(name, group, public_key)
+				if err == nil {
+					payload, _ := json.Marshal(st.CommUserPayload{
+						Name:      name,
+						Group:     group,
+						PublicKey: public_key,
+					})
+					ma.ClusterManager.WriteSync(st.WriteAPI_CreateUser, string(payload))
+					if err != nil {
+						fmt.Printf("Register failed. Something WRONG: %v\n", err)
+					} else {
+						fmt.Printf("Register success\n")
+					}
+				}
 			}
 		case "unregister":
 			fmt.Printf("Enter name: ")
@@ -116,11 +142,19 @@ func cli(notifyStop chan bool) {
 			name := stdin_scanner.Text()
 
 			// Unregister voter
-			err := st.DataStorage.RemoveUser(name)
-			if err != nil {
-				fmt.Printf("Unregister failed. Something WRONG: %v\n", err)
-			} else {
-				fmt.Printf("Unregister success\n")
+			if ma.ClusterManager.GetRoles() {
+				err := st.DataStorage.RemoveUser(name)
+				if err == nil {
+					payload, _ := json.Marshal(st.CommRemoveUserPayload{
+						Name: name,
+					})
+					ma.ClusterManager.WriteSync(st.WriteAPI_RemoveUser, string(payload))
+					if err != nil {
+						fmt.Printf("Unregister failed. Something WRONG: %v\n", err)
+					} else {
+						fmt.Printf("Unregister success\n")
+					}
+				}
 			}
 		case "exit":
 			notifyStop <- true

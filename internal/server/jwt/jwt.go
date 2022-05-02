@@ -25,7 +25,8 @@ func InitJWT() {
 
 	log.Println("JWT_Secret_KEY: ", base64.StdEncoding.EncodeToString(key))
 
-	JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
+	// JWT_Secret_KEY = []byte(base64.StdEncoding.EncodeToString(key))
+	JWT_Secret_KEY = []byte("FUCK Secret")
 
 	if err != nil {
 		log.Fatalf("Failed to generate JWT secret key. Something WRONG: %v\n", err)

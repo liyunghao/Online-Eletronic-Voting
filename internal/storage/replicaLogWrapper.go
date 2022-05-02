@@ -37,6 +37,10 @@ type ReplicaLogWrapper struct {
 // mode, which will remove the log file instead of recovering from it.
 
 // Control Interface
+func (r *ReplicaLogWrapper) RetrieveLatestLog() WriteSyncLog {
+	return r.logs[len(r.logs)-1]
+}
+
 func (r *ReplicaLogWrapper) SynctoStorage(cmd int, payload string, toWriteLog bool) error {
 	switch cmd {
 	case WriteAPI_CreateUser:
