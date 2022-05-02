@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -17,10 +19,10 @@ import (
 )
 
 func main() {
-	var port, controlPort int
+	var port int
 	var configName string
 
-	parseEnv(&port, &controlPort, &configName)
+	parseEnv(&port, &configName)
 
 	// Initialize Storage System (Currently only support memory storage)
 	memStore := &st.MemoryStorage{}
@@ -39,7 +41,12 @@ func main() {
 
 	// Initialize Manager
 	ma.ClusterManager = &ma.LfManager{}
-	ma.ClusterManager.Initialize(configName, controlPort)
+	ma.ClusterManager.Initialize(configName)
+	go ma.ClusterManager.Start()
+	defer func() {
+		_ = ma.ClusterManager.(*ma.LfManager).Server.Shutdown(context.Background())
+		ma.ClusterManager.(*ma.LfManager).CheckPrimaryAliveTimer.Stop()
+	}()
 
 	// Initialize JWT
 	jwt.InitJWT()
@@ -75,15 +82,10 @@ func main() {
 	<-notifyStop
 }
 
-func parseEnv(port *int, controlPort *int, configName *string) {
+func parseEnv(port *int, configName *string) {
 	*port = 8080
 	if os.Getenv("OES_PORT") != "" {
 		*port, _ = strconv.Atoi(os.Getenv("OES_PORT"))
-	}
-
-	*controlPort = 9000
-	if os.Getenv("OES_CONTROL_PORT") != "" {
-		*controlPort, _ = strconv.Atoi(os.Getenv("OES_CONTROL_PORT"))
 	}
 
 	*configName = "config.json"
@@ -118,11 +120,21 @@ func cli(notifyStop chan bool) {
 			public_key := stdin_scanner.Text()
 
 			// Register voter
-			err := st.DataStorage.CreateUser(name, group, public_key)
-			if err != nil {
-				fmt.Printf("Register failed. Something WRONG: %v\n", err)
-			} else {
-				fmt.Printf("Register success\n")
+			if ma.ClusterManager.GetRoles() {
+				err := st.DataStorage.CreateUser(name, group, public_key)
+				if err == nil {
+					payload, _ := json.Marshal(st.CommUserPayload{
+						Name:      name,
+						Group:     group,
+						PublicKey: public_key,
+					})
+					ma.ClusterManager.WriteSync(st.WriteAPI_CreateUser, string(payload))
+					if err != nil {
+						fmt.Printf("Register failed. Something WRONG: %v\n", err)
+					} else {
+						fmt.Printf("Register success\n")
+					}
+				}
 			}
 		case "unregister":
 			fmt.Printf("Enter name: ")
@@ -130,11 +142,19 @@ func cli(notifyStop chan bool) {
 			name := stdin_scanner.Text()
 
 			// Unregister voter
-			err := st.DataStorage.RemoveUser(name)
-			if err != nil {
-				fmt.Printf("Unregister failed. Something WRONG: %v\n", err)
-			} else {
-				fmt.Printf("Unregister success\n")
+			if ma.ClusterManager.GetRoles() {
+				err := st.DataStorage.RemoveUser(name)
+				if err == nil {
+					payload, _ := json.Marshal(st.CommRemoveUserPayload{
+						Name: name,
+					})
+					ma.ClusterManager.WriteSync(st.WriteAPI_RemoveUser, string(payload))
+					if err != nil {
+						fmt.Printf("Unregister failed. Something WRONG: %v\n", err)
+					} else {
+						fmt.Printf("Unregister success\n")
+					}
+				}
 			}
 		case "exit":
 			notifyStop <- true

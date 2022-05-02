@@ -15,7 +15,7 @@ type Manager interface {
 
 	ParseConfig(string) (Node, []Cluster)
 	// will be invoke in an new go routine
-	Start(controlPort int)
+	Start()
 
 	// Getter
 	GetRoles() bool // Retrieve current roles; return 1 if Primary else 0
@@ -45,12 +45,14 @@ type Manager interface {
 // 5. COMBINE INTO CURRENT SERVER CODE
 
 type Node struct {
-	Name string `json:"name"`
-	Id   int    `json:"id"`
+	Name        string `json:"name"`
+	Id          int    `json:"id"`
+	ControlPort int    `json:"control_port"`
 }
 
 type Cluster struct {
-	Name string `json:"name"`
-	Ip   string `json:"ip"`
-	Id   int    `json:"id"`
+	Name        string `json:"name"`
+	Ip          string `json:"ip"`
+	Id          int    `json:"id"`
+	ControlPort int    `json:"control_port"`
 }
