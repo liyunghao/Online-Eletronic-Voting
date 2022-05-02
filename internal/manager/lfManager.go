@@ -54,8 +54,7 @@ func (m *LfManager) BroadcastHeartBeat() error {
 		if m.Clusters[i].Id != 0 { // suppose id 0 is leader
 			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/hearbeat", "application/json", strings.NewReader(""))
 			if resp.StatusCode != http.StatusOK {
-				fmt.Println(err)
-				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
+				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
 
 		}
@@ -78,8 +77,7 @@ func (m *LfManager) WriteSync(storageCmd string, payload string) error {
 			postBody := strings.NewReader(payload_string)
 			resp, err := http.Post("http://"+m.Clusters[i].Ip+"/writesync", "application/json", postBody)
 			if resp.StatusCode != http.StatusOK {
-				fmt.Println(err)
-				return fmt.Errorf("Failed with status code %d", resp.StatusCode)
+				return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 			}
 		}
 	}
@@ -108,8 +106,7 @@ func (m *LfManager) ElectForLeader() error {
 				postBody := strings.NewReader(payload_string)
 				resp, err := http.Post("http://"+m.Clusters[i].Ip+"/declare_capability", "application/json", postBody)
 				if resp.StatusCode != http.StatusOK {
-					fmt.Println(err)
-					return fmt.Errorf("Failed with status code %d", resp.StatusCode)
+					return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 				}
 			}
 		}
@@ -136,8 +133,7 @@ func (m *LfManager) CatchUp() error {
 	postBody := strings.NewReader(payload_string)
 	resp, err := http.Post("http://"+ip+"/catch_up", "application/json", postBody)
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println(err)
-		return fmt.Errorf("Failed with status code %d:", resp.StatusCode)
+		return fmt.Errorf("Failed with status code %d: %v", resp.StatusCode, err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
