@@ -45,7 +45,7 @@ Also known as: `Primary Backup` , `Passive Replication` , `Master-Slave Pattern`
 
 ### Cluster Creation / Node Join Existing Cluster
 
-所有 Node 一開始進入的狀態會直接以設定欓的模式開始運作，但在真正上線開始前會先經過以下 Handshake
+所有 Node 一開始進入的狀態會直接以設定檔的模式開始運作，但在真正上線開始前會先經過以下 Handshake
 去確認是否自己現在的 Role 是合適的：
 
 1. 向 Topology 中所有節點確認是否有 **Leader** 存在
@@ -83,7 +83,7 @@ Cluster Status Update - Node Index：
 ```json
 {
   "storage_cmd": "[CMD_index]",
-  "payload": "JOSN 格式的 Payload"
+  "payload": "JSON 格式的 Payload"
 }
 ```
 
@@ -113,6 +113,14 @@ Priority 越高。演算法如下：
    - 其他人則成為 Followers
 
 這樣設計難免會有 Split Brain 的問題，所以等等要處理 Split Brain 的問題
+
+### Election of New Leader
+
+- Route: `/recv_elect`
+- Payload: `{ "approved": [bool]}`
+
+接收別人傳來的 declare_capability, 回傳是否同意新的 Leader
+(Payload 跟機制可能可以再改，只是先定義好 api route)
 
 ## Node Failed
 
