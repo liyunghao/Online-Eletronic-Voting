@@ -15,7 +15,7 @@ type Manager interface {
 
 	ParseConfig(string) (Node, []Cluster)
 	// will be invoke in an new go routine
-	Start() error
+	Start(controlPort int)
 
 	// Getter
 	GetRoles() bool // Retrieve current roles; return 1 if Primary else 0
@@ -23,11 +23,10 @@ type Manager interface {
 	// Active
 	// Leaders Capabilities
 	BroadcastHeartBeat() error
-	WriteSync(storageCmd string, payload string) error
+	WriteSync(storageCmd int, payload string) error
 
 	// Followers Capabilities
-	ElectForLeader() // backups call -> elect new leader
-	CatchUp()        // Primary call ->
+	CatchUp() error // Primary call ->
 
 	// Http route handler definition
 	// Follower's Capabilities
