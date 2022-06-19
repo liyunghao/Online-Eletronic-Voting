@@ -41,9 +41,9 @@ go get google.golang.org/protobuotoc-gen-go@v1.26
 go get google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 ```
 
-## Build and Run
+## Build
 
-Build
+Build Commands
 ```sh
 # This will build the project and output the binary
 make build
@@ -55,17 +55,21 @@ make build-test
 make clean
 ```
 
-Run
+Build with docker
 ```sh
-# Start a Server
-./server
-
-# Start a Client
-./client
-
-# gRPC route independent testing
-./grpcConn
+# Run in root directory
+docker build -f build/package/prod.dockerfile -t online-voting-system .
 ```
+
+## Start the Server
+
+Start with Docker-Compose
+
+```sh
+docker-compose up
+```
+
+Server will open port from both instance from `8080` and `8081`
 
 ### References
 

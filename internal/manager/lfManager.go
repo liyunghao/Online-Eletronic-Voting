@@ -24,6 +24,7 @@ type LfManager struct {
 	peerPort               int
 	leader                 bool // if this node is currently leader
 	primary                bool // if this node is primary node
+	inPartition            bool // if this node is in partition
 	Server                 *http.Server
 	CheckPrimaryAliveTimer *time.Timer
 }
@@ -32,8 +33,9 @@ func (lf *LfManager) Initialize(args ...interface{}) error {
 
 	lf.Node, lf.Cluster = lf.ParseConfig(args[0].(string)) // args[0] -> config filename
 	// primary node's id is 1 as default
-	lf.primary = false
-	lf.leader = false
+	lf.inPartition = false
+	lf.primary = true
+	lf.leader = true
 	lf.peerPort = lf.Cluster[0].ControlPort
 	if lf.Node.Id == 1 {
 		lf.primary = true
@@ -120,6 +122,8 @@ func (lf *LfManager) CatchUp() error {
 	// 	"snapshot_id": snapshot_id,
 	// })
 	// resBody := bytes.NewBuffer(postBody)
+	// [Bad Bit] AA Pattern, w/ naive merge
+	log_id = 0
 	payload_string := "{\"log_id\": " + strconv.Itoa(log_id) + "}"
 	postBody := strings.NewReader(payload_string)
 	resp, err := http.Post("http://"+ip+":"+strconv.Itoa(lf.peerPort)+"/catch_up", "application/json", postBody)
@@ -145,8 +149,13 @@ func (lf *LfManager) CatchUp() error {
 
 func (lf *LfManager) HeartBeatHandler(w http.ResponseWriter, r *http.Request) {
 	lf.CheckPrimaryAliveTimer.Stop()
+	if lf.inPartition {
+		lf.inPartition = false
+		lf.CatchUp()
+	}
 	lf.CheckPrimaryAliveTimer = time.AfterFunc(20*time.Second, func() {
 		lf.leader = true
+		lf.inPartition = true
 	})
 	w.WriteHeader(http.StatusOK)
 }

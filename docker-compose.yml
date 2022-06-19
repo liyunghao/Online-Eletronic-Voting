@@ -1,19 +1,23 @@
 version: "3.9"  # optional since v1.27.0
 services:
   primary:
-    build: .
+    build:
+      context: .
+      dockerfile: build/package/prod.dockerfile
     ports:
       - "8080:8080"
     environment:
-      - OES_CONFIG_NAME=config_primary.json
+      - OES_CONFIG_NAME=configs/lfPattern/primary.json
     stdin_open: true
     tty: true
   backup:
-    build: .
+    build:
+      context: .
+      dockerfile: build/package/prod.dockerfile
     ports:
       - "8081:8080"
     environment:
-      - OES_CONFIG_NAME=config_backup.json
+      - OES_CONFIG_NAME=configs/lfPattern/backup.json
     stdin_open: true
     tty: true
     depends_on:
